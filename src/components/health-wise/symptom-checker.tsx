@@ -11,6 +11,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 
+const CHAT_HISTORY_KEY = 'healthwise-chat-history';
+
 type Reminder = {
   symptom: string;
   advice: string;
@@ -41,15 +43,48 @@ function SubmitButton() {
 export default function SymptomChecker() {
   const [state, formAction] = useActionState(handleChatMessage, initialState);
   const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      sender: "system",
-      content: "Welcome! I'm your AI Health Companion. Ask me about your symptoms or just say hello.",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Load chat history from localStorage on initial render
+  useEffect(() => {
+    try {
+      const savedHistory = localStorage.getItem(CHAT_HISTORY_KEY);
+      if (savedHistory) {
+        setMessages(JSON.parse(savedHistory));
+      } else {
+        setMessages([
+          {
+            id: 1,
+            sender: "system",
+            content: "Welcome! I'm your AI Health Companion. Ask me about your symptoms or just say hello.",
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error("Failed to load chat history from localStorage", error);
+       setMessages([
+          {
+            id: 1,
+            sender: "system",
+            content: "Welcome! I'm your AI Health Companion. Ask me about your symptoms or just say hello.",
+          },
+        ]);
+    }
+  }, []);
+
+  // Save chat history to localStorage whenever it changes
+  useEffect(() => {
+    if (messages.length > 0) {
+      try {
+        localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages));
+      } catch (error) {
+         console.error("Failed to save chat history to localStorage", error);
+      }
+    }
+  }, [messages]);
+
 
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) {
@@ -74,7 +109,9 @@ export default function SymptomChecker() {
   const onAcceptReminder = async (reminder: Reminder) => {
     const permissionGranted = await requestNotificationPermission();
     if (permissionGranted) {
-      await handleReminder(reminder);
+      const serverResponse = await handleReminder(reminder);
+      // Also save to localStorage as a backup/quick access method
+      localStorage.setItem('healthwise-reminder', JSON.stringify({ ...reminder, lastShown: Date.now() }));
       toast({
         title: 'Reminder Set!',
         description: `You will get daily reminders about your ${reminder.symptom}.`,
@@ -178,8 +215,8 @@ export default function SymptomChecker() {
                                     <p>{contentText}</p>
                                     {reminder && (
                                         <div className="mt-2 pt-2 border-t border-primary/20">
-                                            <p className="text-xs text-muted-foreground mb-2">The AI would like to set a reminder.</p>
-                                            <Button size="sm" onClick={() => onAcceptReminder(reminder!)}>Accept Reminder</Button>
+                                            <p className="text-xs mb-2">I can set a daily reminder for this. Would you like that?</p>
+                                            <Button size="sm" variant="secondary" className="text-secondary-foreground" onClick={() => onAcceptReminder(reminder!)}>Accept Reminder</Button>
                                         </div>
                                     )}
                                 </div>
