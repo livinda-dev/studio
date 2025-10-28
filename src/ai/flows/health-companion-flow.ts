@@ -10,6 +10,7 @@ import {ai} from '@/ai/genkit';
 import { HealthCompanionInputSchema, HealthCompanionOutputSchema, type HealthCompanionInput, type HealthCompanionOutput } from './schemas';
 import { setReminderTool } from './reminder-flow';
 import { generateAudio } from './tts-flow';
+import { z } from 'zod';
 
 
 export async function healthCompanion(input: HealthCompanionInput): Promise<HealthCompanionOutput> {
