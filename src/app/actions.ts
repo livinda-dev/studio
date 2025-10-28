@@ -30,7 +30,22 @@ export async function handleChatMessage(
     };
   }
   
-  const historyForAI: HistoryMessage[] = validatedFields.data.history ? JSON.parse(validatedFields.data.history) : [];
+  let historyForAI: HistoryMessage[] = [];
+  if (validatedFields.data.history) {
+    const rawHistory = JSON.parse(validatedFields.data.history);
+    historyForAI = rawHistory.map((msg: any) => {
+      if (msg.sender === 'user') {
+        return { role: 'user', content: msg.content };
+      }
+      // For AI messages, we need to extract the text part.
+      // The content can be a string (for system messages) or an object (for AI responses).
+      if (msg.sender === 'ai' && typeof msg.content === 'object' && msg.content !== null) {
+        return { role: 'model', content: msg.content.textResponse || '' };
+      }
+      return null;
+    }).filter((item: HistoryMessage | null): item is HistoryMessage => item !== null && item.content.trim() !== '');
+  }
+
 
   try {
     const input: HealthCompanionInput = {
