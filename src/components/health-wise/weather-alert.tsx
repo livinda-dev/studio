@@ -1,6 +1,10 @@
-import { Sun, Droplets, Wind, Cloud } from 'lucide-react';
+"use client"
+
+import { useEffect, useState } from 'react';
+import { Sun, Droplets, Wind, Cloud, Loader2, MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getWeather } from '@/ai/flows/weather-flow';
+import { getWeather, GetWeatherOutput } from '@/ai/flows/weather-flow';
+import { getLocationFromCoords } from '@/ai/flows/location-flow';
 
 const weatherIcons = {
     'Sunny': <Sun className="h-8 w-8 text-yellow-500 shrink-0" />,
@@ -9,22 +13,75 @@ const weatherIcons = {
     'Windy': <Wind className="h-8 w-8 text-gray-400 shrink-0" />,
 };
 
-export default async function WeatherAlert() {
-    let weatherData;
-    try {
-        weatherData = await getWeather({ location: 'New York' });
-    } catch (error) {
-        console.error("Could not fetch weather data", error);
+export default function WeatherAlert() {
+    const [weatherData, setWeatherData] = useState<GetWeatherOutput | null>(null);
+    const [location, setLocation] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!navigator.geolocation) {
+            setError("Geolocation is not supported by your browser.");
+            setLoading(false);
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            try {
+                const { latitude, longitude } = position.coords;
+                const locationResult = await getLocationFromCoords({ latitude, longitude });
+                setLocation(locationResult.city);
+                
+                if (locationResult.city) {
+                    const weatherResult = await getWeather({ location: locationResult.city });
+                    setWeatherData(weatherResult);
+                } else {
+                    setError("Could not determine your location.");
+                }
+            } catch (err) {
+                console.error(err);
+                setError("Failed to fetch weather data.");
+            } finally {
+                setLoading(false);
+            }
+        }, () => {
+            setError("Geolocation permission denied. Please enable it in your browser settings.");
+            setLoading(false);
+        });
+    }, []);
+
+    if (loading) {
+        return (
+            <Card className="shadow-lg bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-950/50">
+                <CardHeader>
+                    <div className="flex items-center gap-3">
+                         <MapPin className="h-6 w-6 text-primary" />
+                         <CardTitle className="font-headline text-primary">Fetching Weather...</CardTitle>
+                    </div>
+                </CardHeader>
+                <CardContent className="flex items-center justify-center gap-4 p-6">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+                    <p className="text-muted-foreground">Getting your local weather</p>
+                </CardContent>
+            </Card>
+        )
+    }
+
+     if (error) {
         return (
              <Card className="shadow-lg bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/50 dark:to-red-950/50">
                 <CardHeader>
                     <CardTitle className="font-headline text-destructive">Weather Unavailable</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-sm text-destructive">Could not load live weather data at the moment.</p>
+                    <p className="text-sm text-destructive">{error}</p>
                 </CardContent>
             </Card>
         )
+    }
+
+    if (!weatherData) {
+        return null; // Or a fallback UI
     }
 
     const icon = weatherIcons[weatherData.condition as keyof typeof weatherIcons] || <Sun className="h-8 w-8 text-yellow-500 shrink-0" />;
@@ -33,8 +90,8 @@ export default async function WeatherAlert() {
         <Card className="shadow-lg bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-950/50">
             <CardHeader>
                 <div className="flex items-center gap-3">
-                    <Sun className="h-6 w-6 text-yellow-500" />
-                    <CardTitle className="font-headline text-primary">Weather in New York</CardTitle>
+                    <MapPin className="h-6 w-6 text-primary" />
+                    <CardTitle className="font-headline text-primary">Weather in {location}</CardTitle>
                 </div>
             </CardHeader>
             <CardContent className="flex items-center gap-4">
