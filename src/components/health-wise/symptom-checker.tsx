@@ -74,17 +74,8 @@ export default function SymptomChecker() {
       ];
       setMessages(newMessages);
       
-      const historyForAI = newMessages.map(msg => {
-        if (msg.sender === 'system') return null;
-        if (typeof msg.content === 'string') {
-            return msg.sender === 'user' 
-                ? { message: msg.content, type: 'conversational' }
-                : { textResponse: msg.content, type: 'conversational' };
-        }
-        return msg.content;
-      }).filter(Boolean);
-
-      formData.set('history', JSON.stringify(historyForAI));
+      // Pass the existing messages array directly. The server action will handle formatting.
+      formData.set('history', JSON.stringify(newMessages));
       
       formAction(formData);
       formRef.current?.reset();
@@ -171,7 +162,7 @@ export default function SymptomChecker() {
         </div>
         <div className="border-t p-4">
             <form ref={formRef} action={handleFormSubmit} className="flex w-full items-center gap-2">
-                <input type="hidden" name="history" value={JSON.stringify(messages.filter(m => m.sender !== 'system').map(m => m.content))} />
+                <input type="hidden" name="history" value={JSON.stringify(messages)} />
                 <Input
                     name="message"
                     placeholder="Ask me about symptoms or just say hi..."

@@ -1,7 +1,7 @@
 'use server';
 
 import { healthCompanion } from '@/ai/flows/health-companion-flow';
-import { HealthCompanionOutput, HealthCompanionInput } from '@/ai/flows/schemas';
+import { HealthCompanionOutput, HealthCompanionInput, type Message } from '@/ai/flows/schemas';
 import { z } from 'zod';
 
 const MessageSchema = z.object({
@@ -30,12 +30,32 @@ export async function handleChatMessage(
     };
   }
   
-  const history = validatedFields.data.history ? JSON.parse(validatedFields.data.history) : [];
+  const rawHistory = validatedFields.data.history ? JSON.parse(validatedFields.data.history) : [];
+
+  // Transform the raw history to match the expected `Message` schema for the AI flow.
+  const historyForAI: Message[] = rawHistory
+    .filter((msg: any) => msg.sender !== 'system') // Exclude system messages
+    .map((msg: any) => {
+      // Handle user messages (which are plain strings)
+      if (msg.sender === 'user' && typeof msg.content === 'string') {
+        return {
+          message: msg.content,
+          type: 'conversational' as const,
+        };
+      }
+      // Handle AI messages (which are objects)
+      if (msg.sender === 'ai' && typeof msg.content === 'object') {
+        return msg.content;
+      }
+      return null;
+    })
+    .filter((item: Message | null): item is Message => item !== null);
+
 
   try {
     const input: HealthCompanionInput = {
       message: validatedFields.data.message,
-      history: history,
+      history: historyForAI,
     };
     const result = await healthCompanion(input);
     return {
@@ -50,4 +70,3 @@ export async function handleChatMessage(
     };
   }
 }
-
