@@ -10,7 +10,7 @@ export const MessageSchema = z.object({
   type: z.enum(['symptom_analysis', 'conversational']).describe("The type of response."),
   analysis: SymptomAnalysisSchema.optional().describe("The symptom analysis, if applicable."),
   textResponse: z.string().optional().describe("The conversational response, if applicable."),
-  // Adding the user message to the schema for history
+  // A user message can also be part of the history
   message: z.string().optional().describe('The message from the user.'), 
 });
 export type Message = z.infer<typeof MessageSchema>;
@@ -22,5 +22,5 @@ export const HealthCompanionInputSchema = z.object({
 });
 export type HealthCompanionInput = z.infer<typeof HealthCompanionInputSchema>;
 
-export const HealthCompanionOutputSchema = MessageSchema;
+export const HealthCompanionOutputSchema = MessageSchema.pick({ type: true, analysis: true, textResponse: true });
 export type HealthCompanionOutput = z.infer<typeof HealthCompanionOutputSchema>;

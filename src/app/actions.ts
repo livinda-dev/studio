@@ -32,22 +32,20 @@ export async function handleChatMessage(
   
   const rawHistory = validatedFields.data.history ? JSON.parse(validatedFields.data.history) : [];
 
-  // Transform the raw history to match the expected `Message` schema for the AI flow.
+  // The history from the client includes the latest user message, which we don't want to send as history
   const historyForAI: Message[] = rawHistory
-    .filter((msg: any) => msg.sender !== 'system') // Exclude system messages
+    // Filter out system messages and the message that is currently being sent
+    .filter((msg: any) => msg.sender === 'ai' || (msg.sender === 'user' && msg.content !== validatedFields.data.message))
     .map((msg: any) => {
-      // Handle user messages (which are plain strings)
-      if (msg.sender === 'user' && typeof msg.content === 'string') {
-        return {
-          message: msg.content,
-          type: 'conversational' as const,
-        };
-      }
-      // Handle AI messages (which are objects)
-      if (msg.sender === 'ai' && typeof msg.content === 'object') {
+        if (msg.sender === 'user') {
+            return {
+                // This is a user message for the history
+                message: msg.content,
+                type: 'conversational',
+            }
+        }
+        // This is an AI message from the history
         return msg.content;
-      }
-      return null;
     })
     .filter((item: Message | null): item is Message => item !== null);
 
