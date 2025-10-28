@@ -1,26 +1,19 @@
 import {z} from 'zod';
 
-export const SymptomAnalysisSchema = z.object({
-  symptom: z.string().describe('The main symptom identified.'),
-  possible_causes: z.array(z.string()).describe('Possible causes for the symptom.'),
-  advice: z.string().describe('General advice related to the symptom, including a disclaimer.'),
+export const HistoryMessageSchema = z.object({
+  role: z.enum(['user', 'model']),
+  content: z.string(),
 });
-
-export const MessageSchema = z.object({
-  type: z.enum(['symptom_analysis', 'conversational']).describe("The type of response."),
-  analysis: SymptomAnalysisSchema.optional().describe("The symptom analysis, if applicable."),
-  textResponse: z.string().optional().describe("The conversational response, if applicable."),
-  // A user message can also be part of the history
-  message: z.string().optional().describe('The message from the user.'), 
-});
-export type Message = z.infer<typeof MessageSchema>;
+export type HistoryMessage = z.infer<typeof HistoryMessageSchema>;
 
 
 export const HealthCompanionInputSchema = z.object({
   message: z.string().describe('The message from the user.'),
-  history: z.array(MessageSchema).optional().describe('The conversation history.'),
+  history: z.array(HistoryMessageSchema).optional().describe('The conversation history.'),
 });
 export type HealthCompanionInput = z.infer<typeof HealthCompanionInputSchema>;
 
-export const HealthCompanionOutputSchema = MessageSchema.pick({ type: true, analysis: true, textResponse: true });
+export const HealthCompanionOutputSchema = z.object({
+    textResponse: z.string().describe("The conversational response from the AI."),
+});
 export type HealthCompanionOutput = z.infer<typeof HealthCompanionOutputSchema>;

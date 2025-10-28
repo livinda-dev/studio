@@ -1,7 +1,7 @@
 'use server';
 
 import { healthCompanion } from '@/ai/flows/health-companion-flow';
-import { HealthCompanionOutput, HealthCompanionInput, type Message } from '@/ai/flows/schemas';
+import { HealthCompanionOutput, HealthCompanionInput, type HistoryMessage } from '@/ai/flows/schemas';
 import { z } from 'zod';
 
 const MessageSchema = z.object({
@@ -13,6 +13,13 @@ type State = {
   data: HealthCompanionOutput | null;
   error: string | null;
 };
+
+type FrontendMessage = {
+  id: number;
+  sender: "user" | "ai" | "system";
+  content: string | { textResponse: string }; // AI response can now be simpler
+};
+
 
 export async function handleChatMessage(
   prevState: State,
@@ -29,28 +36,21 @@ export async function handleChatMessage(
       error: validatedFields.error.flatten().fieldErrors.message?.[0] || 'Invalid input.',
     };
   }
+  
+  const rawHistory: FrontendMessage[] = validatedFields.data.history ? JSON.parse(validatedFields.data.history) : [];
 
-  const rawHistory: any[] = validatedFields.data.history ? JSON.parse(validatedFields.data.history) : [];
-
-  const historyForAI: Message[] = rawHistory
-    .map((msg: any) => {
-        // Only process messages before the current one being sent
+  const historyForAI: HistoryMessage[] = rawHistory
+    .map((msg) => {
         if (msg.sender === 'user') {
-            return {
-                message: msg.content,
-                type: 'conversational', // User messages are always conversational for history
-            };
-        } else if (msg.sender === 'ai' && typeof msg.content === 'object') {
-            // This is a structured AI response
-            return msg.content as Message;
-        } else if (msg.sender === 'system') {
-            // We can ignore system messages for the AI's context
-            return null;
+            return { role: 'user', content: msg.content as string };
         }
-        // Fallback for other message types, though they shouldn't exist in history
+        if (msg.sender === 'ai') {
+            const content = typeof msg.content === 'string' ? msg.content : msg.content.textResponse;
+            return { role: 'model', content: content };
+        }
         return null;
     })
-    .filter((item: Message | null): item is Message => item !== null);
+    .filter((item): item is HistoryMessage => item !== null);
 
 
   try {

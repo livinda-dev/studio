@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { Bot, Send, User, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
+import { Bot, Send, User, Loader2 } from "lucide-react";
 import { handleChatMessage } from "@/app/actions";
 import { type HealthCompanionOutput } from "@/ai/flows/schemas";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ type Message = {
   content: string | HealthCompanionOutput;
 };
 
-const initialState = {
+const initialState: { data: HealthCompanionOutput | null; error: string | null; } = {
   data: null,
   error: null,
 };
@@ -68,14 +68,9 @@ export default function SymptomChecker() {
   const handleFormSubmit = async (formData: FormData) => {
     const message = formData.get("message") as string;
     if (message.trim()) {
-      // Add user message to state immediately for responsive UI
-      const newMessages: Message[] = [
-        ...messages,
-        { id: Date.now(), sender: "user", content: message },
-      ];
-      setMessages(newMessages);
+      const currentUserMessage: Message = { id: Date.now(), sender: "user", content: message };
+      setMessages(prev => [...prev, currentUserMessage]);
       
-      // Pass the previous messages array for history, before the new user message was added.
       formData.set('history', JSON.stringify(messages));
       
       formAction(formData);
@@ -89,62 +84,52 @@ export default function SymptomChecker() {
         <div className="flex-1 overflow-hidden p-0">
             <ScrollArea className="h-full" ref={scrollAreaRef}>
                 <div className="p-6 space-y-6">
-                    {messages.map((message) => (
-                    <div
-                        key={message.id}
-                        className={`flex items-start gap-3 ${
-                        message.sender === "user" ? "justify-end" : "justify-start"
-                        }`}
-                    >
-                        {message.sender !== "user" && (
-                        <Avatar className="h-8 w-8">
-                            <AvatarFallback className="bg-primary text-primary-foreground">
-                            <Bot className="h-5 w-5" />
-                            </AvatarFallback>
-                        </Avatar>
-                        )}
-                        
-                        {typeof message.content === 'string' ? (
-                        <div
-                            className={`max-w-md rounded-lg px-4 py-2 shadow-md ${
-                            message.sender === "user"
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-card border"
-                            } ${message.sender === 'system' ? 'w-full text-center bg-transparent border-none shadow-none text-muted-foreground text-sm' : ''}`}
-                        >
-                            <p>{message.content}</p>
-                        </div>
-                        ) : (
-                          <div className="max-w-md rounded-lg px-4 py-3 shadow-md bg-secondary border space-y-4">
-                            {message.content.type === 'symptom_analysis' && message.content.analysis ? (
-                                <>
-                                    <p className="font-semibold text-base">Analysis for: <span className="text-primary">{message.content.analysis.symptom}</span></p>
-                                    <div>
-                                        <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><AlertTriangle className="text-destructive h-4 w-4"/> Possible Causes</h3>
-                                        <ul className="list-disc pl-5 space-y-1 text-xs text-muted-foreground">
-                                            {message.content.analysis.possible_causes.map((cause, i) => <li key={i}>{cause}</li>)}
-                                        </ul>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><CheckCircle className="text-accent-foreground h-4 w-4"/> General Advice</h3>
-                                        <p className="text-xs">{message.content.analysis.advice}</p>
-                                    </div>
-                                </>
-                            ) : (
-                               <p>{message.content.textResponse}</p>
-                            )}
-                          </div>
-                        )}
+                    {messages.map((message) => {
+                       const isUser = message.sender === 'user';
+                       const isSystem = message.sender === 'system';
+                       let contentText = '';
+                       if (typeof message.content === 'string') {
+                           contentText = message.content;
+                       } else if (message.content.textResponse) {
+                           contentText = message.content.textResponse;
+                       }
 
-                        {message.sender === "user" && (
-                        <Avatar className="h-8 w-8">
-                            <AvatarFallback>
-                            <User className="h-5 w-5" />
-                            </AvatarFallback>
-                        </Avatar>
-                        )}
-                    </div>
-                    ))}
+                       return (
+                            <div
+                                key={message.id}
+                                className={`flex items-start gap-3 ${
+                                isUser ? "justify-end" : "justify-start"
+                                }`}
+                            >
+                                {!isUser && (
+                                <Avatar className="h-8 w-8">
+                                    <AvatarFallback className="bg-primary text-primary-foreground">
+                                    <Bot className="h-5 w-5" />
+                                    </AvatarFallback>
+                                </Avatar>
+                                )}
+                                
+                                <div
+                                    className={`max-w-md rounded-lg px-4 py-2 shadow-md ${
+                                    isUser
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-card border"
+                                    } ${isSystem ? 'w-full text-center bg-transparent border-none shadow-none text-muted-foreground text-sm' : ''}`}
+                                >
+                                    <p>{contentText}</p>
+                                </div>
+                               
+
+                                {isUser && (
+                                <Avatar className="h-8 w-8">
+                                    <AvatarFallback>
+                                    <User className="h-5 w-5" />
+                                    </AvatarFallback>
+                                </Avatar>
+                                )}
+                            </div>
+                       )
+                    })}
                     {useFormStatus().pending && (
                         <div className="flex items-start gap-3 justify-start">
                             <Avatar className="h-8 w-8">
