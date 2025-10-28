@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { Bot, Send, User, Stethoscope, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
+import { Bot, Send, User, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import { handleChatMessage } from "@/app/actions";
 import { type HealthCompanionOutput } from "@/ai/flows/schemas";
 import { Input } from "@/components/ui/input";
@@ -72,6 +72,20 @@ export default function SymptomChecker() {
         ...prev,
         { id: Date.now(), sender: "user", content: message },
       ]);
+      
+      const historyForAI = messages.map(msg => {
+          if (typeof msg.content === 'string') {
+              if (msg.sender === 'user') {
+                  return { message: msg.content };
+              } else {
+                  return { textResponse: msg.content };
+              }
+          }
+          return msg.content;
+      }).filter(c => (c as HealthCompanionOutput).type); // only send valid history
+
+      formData.set('history', JSON.stringify(historyForAI));
+      
       formAction(formData);
       formRef.current?.reset();
     }
@@ -157,6 +171,7 @@ export default function SymptomChecker() {
         </div>
         <div className="border-t p-4">
             <form ref={formRef} action={handleFormSubmit} className="flex w-full items-center gap-2">
+                <input type="hidden" name="history" value={JSON.stringify(messages.map(m => m.content))} />
                 <Input
                     name="message"
                     placeholder="Ask me about symptoms or just say hi..."
@@ -171,3 +186,4 @@ export default function SymptomChecker() {
     </div>
   );
 }
+

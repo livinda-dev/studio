@@ -14,6 +14,47 @@ export async function healthCompanion(input: HealthCompanionInput): Promise<Heal
   return healthCompanionFlow(input);
 }
 
+const symptomCheckPrompt = ai.definePrompt({
+    name: 'symptomCheckPrompt',
+    input: { schema: HealthCompanionInputSchema },
+    output: { schema: HealthCompanionOutputSchema },
+    prompt: `You are an AI medical assistant designed to provide general, educational guidance. You are not a substitute for a real doctor.
+
+Your role is to have a conversation with the user about their health concerns.
+
+Analyze the user's message and the conversation history.
+
+1.  **If the user is describing a medical symptom for the first time or providing new information:**
+    *   Your primary goal is to gather more information. Ask clarifying questions about the symptom.
+    *   For example, if they say "I have a headache," ask about the location, severity, duration, what makes it better or worse, and any associated symptoms.
+    *   Your response should be a question to get more details. Set the 'type' to 'conversational'.
+    *   Do not provide any analysis or advice at this stage.
+
+2.  **If the user is providing answers to your questions and you have enough information to provide a general analysis:**
+    *   Identify the main symptom.
+    *   List possible, general causes (do not diagnose).
+    *   Provide brief, safe, general advice (e.g., "Consider resting," "Stay hydrated").
+    *   Crucially, always include a disclaimer: "This is not a medical diagnosis. Please consult a healthcare professional for any medical concerns."
+    *   Structure the output as JSON with the 'type' set to 'symptom_analysis'.
+
+3.  **If the conversation is not about a medical symptom (e.g., "Hi", "Thank you"):**
+    *   Respond in a friendly, conversational manner.
+    *   Set the 'type' to 'conversational'.
+
+Conversation History:
+{{#if history}}
+{{#each history}}
+User: {{message}}
+AI: {{#if (eq type 'symptom_analysis')}}Symptom: {{analysis.symptom}}, Possible Causes: {{join analysis.possible_causes ", "}}, Advice: {{analysis.advice}}{{else}}{{textResponse}}{{/if}}
+{{/each}}
+{{/if}}
+
+Current User Message:
+"{{{message}}}"
+
+Based on the rules above, generate your response.`,
+});
+
 
 const healthCompanionFlow = ai.defineFlow(
   {
@@ -22,37 +63,8 @@ const healthCompanionFlow = ai.defineFlow(
     outputSchema: HealthCompanionOutputSchema,
   },
   async (input) => {
-    const isSymptomRelated = await ai.generate({
-        prompt: `Does the following user message appear to be describing a medical symptom? Answer with only "yes" or "no".\n\nUser message: "${input.message}"`,
-        model: 'googleai/gemini-2.5-flash',
-        output: {
-            format: 'text'
-        }
-    });
-
-    if (isSymptomRelated.text.toLowerCase().includes('yes')) {
-        const symptomPrompt = ai.definePrompt({
-            name: 'aiSymptomCheckPrompt',
-            input: {schema: HealthCompanionInputSchema},
-            output: {schema: SymptomAnalysisSchema},
-            prompt: `You are a medical assistant that provides general, educational guidance only. Analyze the symptom and respond with JSON:\n{ symptom, possible_causes, advice (<=30 words, no diagnosis) }\n\nUser Symptom Description: {{{message}}}`,
-        });
-
-        const { output } = await symptomPrompt(input);
-        return {
-            type: 'symptom_analysis',
-            analysis: output!,
-        };
-    } else {
-        const conversationalPrompt = await ai.generate({
-            prompt: `You are a friendly and helpful AI Health Companion. The user said: "${input.message}". Respond in a conversational and friendly tone.`,
-            model: 'googleai/gemini-2.5-flash'
-        });
-
-        return {
-            type: 'conversational',
-            textResponse: conversationalPrompt.text,
-        };
-    }
+    const { output } = await symptomCheckPrompt(input);
+    return output!;
   }
 );
+

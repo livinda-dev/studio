@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 const MessageSchema = z.object({
   message: z.string().min(1, 'Please enter a message.'),
+  history: z.string().optional(), // history is a JSON string
 });
 
 type State = {
@@ -19,6 +20,7 @@ export async function handleChatMessage(
 ): Promise<State> {
   const validatedFields = MessageSchema.safeParse({
     message: formData.get('message'),
+    history: formData.get('history'),
   });
 
   if (!validatedFields.success) {
@@ -27,10 +29,13 @@ export async function handleChatMessage(
       error: validatedFields.error.flatten().fieldErrors.message?.[0] || 'Invalid input.',
     };
   }
+  
+  const history = validatedFields.data.history ? JSON.parse(validatedFields.data.history) : [];
 
   try {
     const input: HealthCompanionInput = {
       message: validatedFields.data.message,
+      history: history,
     };
     const result = await healthCompanion(input);
     return {
@@ -45,3 +50,4 @@ export async function handleChatMessage(
     };
   }
 }
+
