@@ -42,12 +42,15 @@ Analyze the user's message and the conversation history.
     *   Set the 'type' to 'conversational'.
 
 Conversation History:
-{{#if history~}}
+{{#if history}}
 {{#each history}}
+{{#if this.message}}
 User: {{this.message}}
+{{else}}
 AI: {{#if (eq this.type 'symptom_analysis')}}Symptom: {{this.analysis.symptom}}, Possible Causes: {{join this.analysis.possible_causes ", "}}, Advice: {{this.analysis.advice}}{{else}}{{this.textResponse}}{{/if}}
+{{/if}}
 {{/each}}
-{{~/if}}
+{{/if}}
 
 Current User Message:
 "{{{message}}}"
