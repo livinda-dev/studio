@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { Bot, Send, User, Loader2 } from "lucide-react";
+import { Bot, Send, User, Loader2, Volume2 } from "lucide-react";
 import { handleChatMessage, handleReminder } from "@/app/actions";
 import { type HealthCompanionOutput } from "@/ai/flows/schemas";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,7 @@ export default function SymptomChecker() {
   const [messages, setMessages] = useState<Message[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Load chat history from localStorage on initial render
   useEffect(() => {
@@ -118,13 +119,18 @@ export default function SymptomChecker() {
       });
     }
   };
-
-  useEffect(() => {
+  
+    useEffect(() => {
     if (state.data) {
-      setMessages((prev) => [
-        ...prev,
-        { id: Date.now(), sender: "ai", content: state.data },
-      ]);
+      const newAiMessage: Message = { id: Date.now(), sender: "ai", content: state.data };
+      setMessages((prev) => [...prev, newAiMessage]);
+      
+      // Auto-play audio if available
+      if (state.data.audioData && audioRef.current) {
+        audioRef.current.src = state.data.audioData;
+        audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+      }
+
     } else if (state.error) {
        setMessages((prev) => [
         ...prev,
@@ -148,29 +154,25 @@ export default function SymptomChecker() {
       const currentUserMessage: Message = { id: Date.now(), sender: "user", content: message };
       setMessages(prev => [...prev, currentUserMessage]);
       
-      const historyForAI = messages
-        .map((msg) => {
-            if (msg.sender === 'user') {
-                return { role: 'user', content: msg.content as string };
-            }
-            if (msg.sender === 'ai') {
-                const content = typeof msg.content === 'string' ? msg.content : msg.content.textResponse;
-                return { role: 'model', content: content };
-            }
-            return null;
-        })
-        .filter((item): item is {role: 'user' | 'model', content: string} => item !== null);
-
-      formData.set('history', JSON.stringify(historyForAI));
+      const historyJson = JSON.stringify(messages);
+      formData.set('history', historyJson);
       
       formAction(formData);
       formRef.current?.reset();
     }
   };
 
+  const playAudio = (audioData: string) => {
+      if(audioRef.current) {
+          audioRef.current.src = audioData;
+          audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+      }
+  }
+
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
+        <audio ref={audioRef} className="hidden" />
         <div className="flex-1 overflow-hidden p-0">
             <ScrollArea className="h-full" ref={scrollAreaRef}>
                 <div className="p-6 space-y-6">
@@ -180,11 +182,13 @@ export default function SymptomChecker() {
                        
                        let contentText = '';
                        let reminder: Reminder | undefined;
+                       let audioData: string | undefined;
 
                        if (typeof message.content === 'string') {
                            contentText = message.content;
                        } else {
                            contentText = message.content.textResponse;
+                           audioData = message.content.audioData;
                            if (message.content.tool_code?.name === 'setReminderTool') {
                                reminder = message.content.tool_code.args;
                            }
@@ -206,18 +210,25 @@ export default function SymptomChecker() {
                                 )}
                                 
                                 <div
-                                    className={`max-w-md rounded-lg px-4 py-2 shadow-md ${
+                                    className={`max-w-md rounded-lg px-4 py-2 shadow-md flex items-center gap-2 ${
                                     isUser
                                         ? "bg-primary text-primary-foreground"
                                         : "bg-card border"
                                     } ${isSystem ? 'w-full text-center bg-transparent border-none shadow-none text-muted-foreground text-sm' : ''}`}
                                 >
-                                    <p>{contentText}</p>
-                                    {reminder && (
-                                        <div className="mt-2 pt-2 border-t border-primary/20">
-                                            <p className="text-xs mb-2">I can set a daily reminder for this. Would you like that?</p>
-                                            <Button size="sm" variant="secondary" className="text-secondary-foreground" onClick={() => onAcceptReminder(reminder!)}>Accept Reminder</Button>
-                                        </div>
+                                    <div>
+                                        <p>{contentText}</p>
+                                        {reminder && (
+                                            <div className="mt-2 pt-2 border-t border-primary/20">
+                                                <p className="text-xs mb-2">I can set a daily reminder for this. Would you like that?</p>
+                                                <Button size="sm" variant="secondary" className="text-secondary-foreground" onClick={() => onAcceptReminder(reminder!)}>Accept Reminder</Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {!isUser && !isSystem && audioData && (
+                                        <Button variant="ghost" size="icon" className="shrink-0" onClick={() => playAudio(audioData!)}>
+                                            <Volume2 className="h-5 w-5" />
+                                        </Button>
                                     )}
                                 </div>
                                
