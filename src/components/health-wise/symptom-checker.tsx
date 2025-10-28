@@ -3,17 +3,25 @@
 import React, { useState, useRef, useEffect, useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Bot, Send, User, Loader2 } from "lucide-react";
-import { handleChatMessage } from "@/app/actions";
+import { handleChatMessage, handleReminder } from "@/app/actions";
 import { type HealthCompanionOutput } from "@/ai/flows/schemas";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+
+type Reminder = {
+  symptom: string;
+  advice: string;
+};
+
+type MessageContent = string | (HealthCompanionOutput & { tool_code?: { name: string; args: Reminder } });
 
 type Message = {
   id: number;
   sender: "user" | "ai" | "system";
-  content: string | HealthCompanionOutput;
+  content: MessageContent;
 };
 
 const initialState: { data: HealthCompanionOutput | null; error: string | null; } = {
@@ -32,6 +40,7 @@ function SubmitButton() {
 
 export default function SymptomChecker() {
   const [state, formAction] = useActionState(handleChatMessage, initialState);
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -41,6 +50,37 @@ export default function SymptomChecker() {
   ]);
   const formRef = useRef<HTMLFormElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      toast({
+        variant: 'destructive',
+        title: 'Notifications not supported',
+        description: 'This browser does not support desktop notifications.',
+      });
+      return false;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      toast({
+        title: 'Permission Denied',
+        description: 'You will not receive reminder notifications.',
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const onAcceptReminder = async (reminder: Reminder) => {
+    const permissionGranted = await requestNotificationPermission();
+    if (permissionGranted) {
+      await handleReminder(reminder);
+      toast({
+        title: 'Reminder Set!',
+        description: `You will get daily reminders about your ${reminder.symptom}.`,
+      });
+    }
+  };
 
   useEffect(() => {
     if (state.data) {
@@ -71,7 +111,20 @@ export default function SymptomChecker() {
       const currentUserMessage: Message = { id: Date.now(), sender: "user", content: message };
       setMessages(prev => [...prev, currentUserMessage]);
       
-      formData.set('history', JSON.stringify(messages));
+      const historyForAI = messages
+        .map((msg) => {
+            if (msg.sender === 'user') {
+                return { role: 'user', content: msg.content as string };
+            }
+            if (msg.sender === 'ai') {
+                const content = typeof msg.content === 'string' ? msg.content : msg.content.textResponse;
+                return { role: 'model', content: content };
+            }
+            return null;
+        })
+        .filter((item): item is {role: 'user' | 'model', content: string} => item !== null);
+
+      formData.set('history', JSON.stringify(historyForAI));
       
       formAction(formData);
       formRef.current?.reset();
@@ -87,11 +140,17 @@ export default function SymptomChecker() {
                     {messages.map((message) => {
                        const isUser = message.sender === 'user';
                        const isSystem = message.sender === 'system';
+                       
                        let contentText = '';
+                       let reminder: Reminder | undefined;
+
                        if (typeof message.content === 'string') {
                            contentText = message.content;
-                       } else if (message.content.textResponse) {
+                       } else {
                            contentText = message.content.textResponse;
+                           if (message.content.tool_code?.name === 'setReminderTool') {
+                               reminder = message.content.tool_code.args;
+                           }
                        }
 
                        return (
@@ -117,6 +176,12 @@ export default function SymptomChecker() {
                                     } ${isSystem ? 'w-full text-center bg-transparent border-none shadow-none text-muted-foreground text-sm' : ''}`}
                                 >
                                     <p>{contentText}</p>
+                                    {reminder && (
+                                        <div className="mt-2 pt-2 border-t border-primary/20">
+                                            <p className="text-xs text-muted-foreground mb-2">The AI would like to set a reminder.</p>
+                                            <Button size="sm" onClick={() => onAcceptReminder(reminder!)}>Accept Reminder</Button>
+                                        </div>
+                                    )}
                                 </div>
                                
 

@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import AuthProvider from '@/components/auth/auth-provider';
+import ReminderManager from '@/components/health-wise/reminder-manager';
 
 export const metadata: Metadata = {
   title: 'HealthWise Companion',
@@ -25,6 +26,7 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <AuthProvider>
             {children}
+            <ReminderManager />
           </AuthProvider>
         </FirebaseClientProvider>
         <Toaster />

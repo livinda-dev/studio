@@ -14,13 +14,6 @@ type State = {
   error: string | null;
 };
 
-type FrontendMessage = {
-  id: number;
-  sender: "user" | "ai" | "system";
-  content: string | { textResponse: string }; // AI response can now be simpler
-};
-
-
 export async function handleChatMessage(
   prevState: State,
   formData: FormData
@@ -37,21 +30,7 @@ export async function handleChatMessage(
     };
   }
   
-  const rawHistory: FrontendMessage[] = validatedFields.data.history ? JSON.parse(validatedFields.data.history) : [];
-
-  const historyForAI: HistoryMessage[] = rawHistory
-    .map((msg) => {
-        if (msg.sender === 'user') {
-            return { role: 'user', content: msg.content as string };
-        }
-        if (msg.sender === 'ai') {
-            const content = typeof msg.content === 'string' ? msg.content : msg.content.textResponse;
-            return { role: 'model', content: content };
-        }
-        return null;
-    })
-    .filter((item): item is HistoryMessage => item !== null);
-
+  const historyForAI: HistoryMessage[] = validatedFields.data.history ? JSON.parse(validatedFields.data.history) : [];
 
   try {
     const input: HealthCompanionInput = {
@@ -70,4 +49,28 @@ export async function handleChatMessage(
       error: 'The AI assistant is currently unavailable. Please try again later.',
     };
   }
+}
+
+const ReminderSchema = z.object({
+  symptom: z.string(),
+  advice: z.string(),
+});
+
+type Reminder = z.infer<typeof ReminderSchema>;
+
+// This server action is a bit of a placeholder in this prototype.
+// In a real app, this is where you'd save the reminder to a database.
+// For now, the client will also write to localStorage.
+export async function handleReminder(reminder: Reminder) {
+  console.log('Reminder received on server:', reminder);
+
+  // In a real application, you would save this to Firestore for the user.
+  // For example:
+  // const { userId } = auth();
+  // if (!userId) throw new Error("Not authenticated");
+  // await setDoc(doc(db, 'users', userId, 'reminders', reminder.symptom), { ...reminder, createdAt: serverTimestamp() });
+  
+  // We are returning the data so the client knows it was "successful"
+  // and can then proceed to save it to localStorage.
+  return { success: true, reminder };
 }

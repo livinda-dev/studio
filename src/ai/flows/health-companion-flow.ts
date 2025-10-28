@@ -8,6 +8,7 @@
 
 import {ai} from '@/ai/genkit';
 import { HealthCompanionInputSchema, HealthCompanionOutputSchema, type HealthCompanionInput, type HealthCompanionOutput } from './schemas';
+import { setReminderTool } from './reminder-flow';
 
 
 export async function healthCompanion(input: HealthCompanionInput): Promise<HealthCompanionOutput> {
@@ -18,9 +19,12 @@ const conversationalPrompt = ai.definePrompt({
     name: 'conversationalPrompt',
     input: { schema: HealthCompanionInputSchema },
     output: { schema: HealthCompanionOutputSchema },
+    tools: [setReminderTool],
     prompt: `You are a friendly and helpful AI Health Companion. Your role is to have a natural, supportive conversation with the user about their health and wellness questions.
 
 Keep your responses concise and easy to understand. Avoid making medical diagnoses. If the user asks for a diagnosis, gently remind them to consult a healthcare professional.
+
+If the user mentions a specific, ongoing symptom (like a "headache", "nausea", or "back pain"), you should offer to set a daily reminder to help them manage it. Use the 'setReminderTool' for this. For example, if they mention a headache, suggest a reminder to "drink plenty of water".
 
 Conversation History:
 {{#if history}}
@@ -32,7 +36,7 @@ Conversation History:
 Current User Message:
 "{{{message}}}"
 
-Based on the conversation, provide a helpful and conversational response.`,
+Based on the conversation, provide a helpful and conversational response. If you decide to use the setReminderTool, your main textResponse should still be a conversational message informing the user of your suggestion.`,
 });
 
 
