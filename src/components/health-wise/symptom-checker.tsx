@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import React, { useState, useRef, useEffect, useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { Bot, Send, User, Stethoscope, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import { handleSymptomCheck } from "@/app/actions";
 import { type AiSymptomCheckOutput } from "@/ai/flows/ai-symptom-check";
@@ -32,7 +32,7 @@ function SubmitButton() {
 }
 
 export default function SymptomChecker() {
-  const [state, formAction] = useFormState(handleSymptomCheck, initialState);
+  const [state, formAction] = useActionState(handleSymptomCheck, initialState);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
