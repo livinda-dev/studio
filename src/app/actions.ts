@@ -1,43 +1,44 @@
 'use server';
 
-import { aiSymptomCheck, AiSymptomCheckOutput, AiSymptomCheckInput } from '@/ai/flows/ai-symptom-check';
+import { healthCompanion } from '@/ai/flows/health-companion-flow';
+import { HealthCompanionOutput, HealthCompanionInput } from '@/ai/flows/schemas';
 import { z } from 'zod';
 
-const SymptomSchema = z.object({
-  symptomDescription: z.string().min(3, 'Please describe your symptom in more detail.'),
+const MessageSchema = z.object({
+  message: z.string().min(1, 'Please enter a message.'),
 });
 
 type State = {
-  data: AiSymptomCheckOutput | null;
+  data: HealthCompanionOutput | null;
   error: string | null;
 };
 
-export async function handleSymptomCheck(
+export async function handleChatMessage(
   prevState: State,
   formData: FormData
 ): Promise<State> {
-  const validatedFields = SymptomSchema.safeParse({
-    symptomDescription: formData.get('symptomDescription'),
+  const validatedFields = MessageSchema.safeParse({
+    message: formData.get('message'),
   });
 
   if (!validatedFields.success) {
     return {
       data: null,
-      error: validatedFields.error.flatten().fieldErrors.symptomDescription?.[0] || 'Invalid input.',
+      error: validatedFields.error.flatten().fieldErrors.message?.[0] || 'Invalid input.',
     };
   }
 
   try {
-    const input: AiSymptomCheckInput = {
-      symptomDescription: validatedFields.data.symptomDescription,
+    const input: HealthCompanionInput = {
+      message: validatedFields.data.message,
     };
-    const result = await aiSymptomCheck(input);
+    const result = await healthCompanion(input);
     return {
       data: result,
       error: null,
     };
   } catch (error) {
-    console.error('AI Symptom Check Error:', error);
+    console.error('AI Chat Error:', error);
     return {
       data: null,
       error: 'The AI assistant is currently unavailable. Please try again later.',

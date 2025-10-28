@@ -3,18 +3,17 @@
 import React, { useState, useRef, useEffect, useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Bot, Send, User, Stethoscope, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
-import { handleSymptomCheck } from "@/app/actions";
-import { type AiSymptomCheckOutput } from "@/ai/flows/ai-symptom-check";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { handleChatMessage } from "@/app/actions";
+import { type HealthCompanionOutput } from "@/ai/flows/schemas";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 type Message = {
   id: number;
   sender: "user" | "ai" | "system";
-  content: string | AiSymptomCheckOutput;
+  content: string | HealthCompanionOutput;
 };
 
 const initialState = {
@@ -32,12 +31,12 @@ function SubmitButton() {
 }
 
 export default function SymptomChecker() {
-  const [state, formAction] = useActionState(handleSymptomCheck, initialState);
+  const [state, formAction] = useActionState(handleChatMessage, initialState);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
       sender: "system",
-      content: "Welcome! Describe your symptoms to get educational, non-diagnostic guidance.",
+      content: "Welcome! I'm your AI Health Companion. Ask me about your symptoms or just say hello.",
     },
   ]);
   const formRef = useRef<HTMLFormElement>(null);
@@ -46,7 +45,7 @@ export default function SymptomChecker() {
   useEffect(() => {
     if (state.data) {
       setMessages((prev) => [
-        ...prev.filter(m => m.sender !== 'ai' || typeof m.content === 'string'),
+        ...prev,
         { id: Date.now(), sender: "ai", content: state.data },
       ]);
     } else if (state.error) {
@@ -67,11 +66,11 @@ export default function SymptomChecker() {
   }, [messages]);
   
   const handleFormSubmit = async (formData: FormData) => {
-    const symptomDescription = formData.get("symptomDescription") as string;
-    if (symptomDescription.trim()) {
+    const message = formData.get("message") as string;
+    if (message.trim()) {
       setMessages((prev) => [
         ...prev,
-        { id: Date.now(), sender: "user", content: symptomDescription },
+        { id: Date.now(), sender: "user", content: message },
       ]);
       formAction(formData);
       formRef.current?.reset();
@@ -80,16 +79,7 @@ export default function SymptomChecker() {
 
 
   return (
-    <div className="flex flex-col h-[calc(100vh-10rem)]">
-        <CardHeader className="border-b">
-            <div className="flex items-center gap-3">
-                <Stethoscope className="h-6 w-6 text-primary" />
-                <CardTitle className="font-headline">AI Symptom Checker</CardTitle>
-            </div>
-            <CardDescription>
-                This is for educational purposes and is not a substitute for professional medical advice.
-            </CardDescription>
-        </CardHeader>
+    <div className="flex flex-col h-[calc(100vh-8rem)]">
         <div className="flex-1 overflow-hidden p-0">
             <ScrollArea className="h-full" ref={scrollAreaRef}>
                 <div className="p-6 space-y-6">
@@ -119,19 +109,25 @@ export default function SymptomChecker() {
                             <p>{message.content}</p>
                         </div>
                         ) : (
-                        <div className="max-w-md rounded-lg px-4 py-3 shadow-md bg-secondary border space-y-4">
-                            <p className="font-semibold text-base">Analysis for: <span className="text-primary">{message.content.symptom}</span></p>
-                            <div>
-                            <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><AlertTriangle className="text-destructive h-4 w-4"/> Possible Causes</h3>
-                            <ul className="list-disc pl-5 space-y-1 text-xs text-muted-foreground">
-                                {message.content.possible_causes.map((cause, i) => <li key={i}>{cause}</li>)}
-                            </ul>
-                            </div>
-                            <div>
-                            <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><CheckCircle className="text-accent-foreground h-4 w-4"/> General Advice</h3>
-                            <p className="text-xs">{message.content.advice}</p>
-                            </div>
-                        </div>
+                          <div className="max-w-md rounded-lg px-4 py-3 shadow-md bg-secondary border space-y-4">
+                            {message.content.type === 'symptom_analysis' && message.content.analysis ? (
+                                <>
+                                    <p className="font-semibold text-base">Analysis for: <span className="text-primary">{message.content.analysis.symptom}</span></p>
+                                    <div>
+                                        <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><AlertTriangle className="text-destructive h-4 w-4"/> Possible Causes</h3>
+                                        <ul className="list-disc pl-5 space-y-1 text-xs text-muted-foreground">
+                                            {message.content.analysis.possible_causes.map((cause, i) => <li key={i}>{cause}</li>)}
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><CheckCircle className="text-accent-foreground h-4 w-4"/> General Advice</h3>
+                                        <p className="text-xs">{message.content.analysis.advice}</p>
+                                    </div>
+                                </>
+                            ) : (
+                               <p>{message.content.textResponse}</p>
+                            )}
+                          </div>
                         )}
 
                         {message.sender === "user" && (
@@ -159,11 +155,11 @@ export default function SymptomChecker() {
                 </div>
             </ScrollArea>
         </div>
-        <CardFooter className="border-t p-4">
+        <div className="border-t p-4">
             <form ref={formRef} action={handleFormSubmit} className="flex w-full items-center gap-2">
                 <Input
-                    name="symptomDescription"
-                    placeholder="Type your symptoms here..."
+                    name="message"
+                    placeholder="Ask me about symptoms or just say hi..."
                     className="flex-1"
                     autoComplete="off"
                     required
@@ -171,7 +167,7 @@ export default function SymptomChecker() {
                 />
                 <SubmitButton />
             </form>
-        </CardFooter>
+        </div>
     </div>
   );
 }
