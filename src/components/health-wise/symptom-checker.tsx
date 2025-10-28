@@ -119,23 +119,19 @@ export default function SymptomChecker() {
                     <p>{message.content}</p>
                   </div>
                 ) : (
-                  <Card className="max-w-md bg-secondary shadow-md">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Analysis for: <span className="text-primary">{message.content.symptom}</span></CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                  <div className="max-w-md rounded-lg px-4 py-3 shadow-md bg-secondary border space-y-4">
+                    <p className="font-semibold text-base">Analysis for: <span className="text-primary">{message.content.symptom}</span></p>
+                    <div>
+                      <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><AlertTriangle className="text-destructive h-4 w-4"/> Possible Causes</h3>
+                      <ul className="list-disc pl-5 space-y-1 text-xs text-muted-foreground">
+                        {message.content.possible_causes.map((cause, i) => <li key={i}>{cause}</li>)}
+                      </ul>
+                    </div>
                       <div>
-                        <h3 className="font-semibold mb-2 flex items-center gap-2"><AlertTriangle className="text-destructive"/> Possible Causes</h3>
-                        <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-                          {message.content.possible_causes.map((cause, i) => <li key={i}>{cause}</li>)}
-                        </ul>
-                      </div>
-                       <div>
-                        <h3 className="font-semibold mb-2 flex items-center gap-2"><CheckCircle className="text-accent-foreground"/> General Advice</h3>
-                        <p className="text-sm">{message.content.advice}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><CheckCircle className="text-accent-foreground h-4 w-4"/> General Advice</h3>
+                      <p className="text-xs">{message.content.advice}</p>
+                    </div>
+                  </div>
                 )}
 
                 {message.sender === "user" && (
