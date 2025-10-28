@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import Link from 'next/link';
 
 export default function UserProfile() {
     const [notifications, setNotifications] = useState(true);
@@ -50,9 +51,11 @@ export default function UserProfile() {
                  <div className="space-y-2">
                     <h3 className="text-sm font-semibold text-muted-foreground">Account Actions</h3>
                     <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="flex-1">
-                            <Settings className="mr-2 h-4 w-4" />
-                            Settings
+                        <Button variant="outline" size="sm" className="flex-1" asChild>
+                            <Link href="/settings">
+                                <Settings className="mr-2 h-4 w-4" />
+                                Settings
+                            </Link>
                         </Button>
                         <Button variant="destructive" size="sm" className="flex-1">
                             <LogOut className="mr-2 h-4 w-4" />
