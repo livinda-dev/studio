@@ -29,23 +29,26 @@ export async function handleChatMessage(
       error: validatedFields.error.flatten().fieldErrors.message?.[0] || 'Invalid input.',
     };
   }
-  
-  const rawHistory = validatedFields.data.history ? JSON.parse(validatedFields.data.history) : [];
 
-  // The history from the client includes the latest user message, which we don't want to send as history
+  const rawHistory: any[] = validatedFields.data.history ? JSON.parse(validatedFields.data.history) : [];
+
   const historyForAI: Message[] = rawHistory
-    // Filter out system messages and the message that is currently being sent
-    .filter((msg: any) => msg.sender === 'ai' || (msg.sender === 'user' && msg.content !== validatedFields.data.message))
     .map((msg: any) => {
+        // Only process messages before the current one being sent
         if (msg.sender === 'user') {
             return {
-                // This is a user message for the history
                 message: msg.content,
-                type: 'conversational',
-            }
+                type: 'conversational', // User messages are always conversational for history
+            };
+        } else if (msg.sender === 'ai' && typeof msg.content === 'object') {
+            // This is a structured AI response
+            return msg.content as Message;
+        } else if (msg.sender === 'system') {
+            // We can ignore system messages for the AI's context
+            return null;
         }
-        // This is an AI message from the history
-        return msg.content;
+        // Fallback for other message types, though they shouldn't exist in history
+        return null;
     })
     .filter((item: Message | null): item is Message => item !== null);
 

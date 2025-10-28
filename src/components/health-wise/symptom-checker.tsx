@@ -68,14 +68,15 @@ export default function SymptomChecker() {
   const handleFormSubmit = async (formData: FormData) => {
     const message = formData.get("message") as string;
     if (message.trim()) {
+      // Add user message to state immediately for responsive UI
       const newMessages: Message[] = [
         ...messages,
         { id: Date.now(), sender: "user", content: message },
       ];
       setMessages(newMessages);
       
-      // Pass the existing messages array directly. The server action will handle formatting.
-      formData.set('history', JSON.stringify(newMessages));
+      // Pass the previous messages array for history, before the new user message was added.
+      formData.set('history', JSON.stringify(messages));
       
       formAction(formData);
       formRef.current?.reset();
@@ -162,7 +163,6 @@ export default function SymptomChecker() {
         </div>
         <div className="border-t p-4">
             <form ref={formRef} action={handleFormSubmit} className="flex w-full items-center gap-2">
-                <input type="hidden" name="history" value={JSON.stringify(messages)} />
                 <Input
                     name="message"
                     placeholder="Ask me about symptoms or just say hi..."
