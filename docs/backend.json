@@ -1,0 +1,177 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user's profile within the HealthWise Companion application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user profile."
+        },
+        "name": {
+          "type": "string",
+          "description": "User's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "avatar": {
+          "type": "string",
+          "description": "URL of the user's profile picture.",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp of when the user profile was created.",
+          "format": "date-time"
+        },
+        "lastActive": {
+          "type": "string",
+          "description": "Timestamp of the user's last activity.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "createdAt"
+      ]
+    },
+    "Activity": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Activity",
+      "type": "object",
+      "description": "Represents a user's physical activity log entry.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the activity log entry."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N Activity)"
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of activity (walk, run, cycle)."
+        },
+        "duration": {
+          "type": "number",
+          "description": "Duration of the activity in minutes."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the activity.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "type",
+        "duration",
+        "date"
+      ]
+    },
+    "Chat": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Chat",
+      "type": "object",
+      "description": "Represents a chat session between the user and the AI.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the chat session."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N Chat)"
+        },
+        "messages": {
+          "type": "array",
+          "description": "An array of messages in the chat session.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "messages"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/profile",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information. Path-based ownership ensures only the user can access their profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/activities/{activityId}",
+        "definition": {
+          "entityName": "Activity",
+          "schema": {
+            "$ref": "#/backend/entities/Activity"
+          },
+          "description": "Stores user activity data. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "activityId",
+              "description": "The unique identifier for the activity."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/chats/{chatId}",
+        "definition": {
+          "entityName": "Chat",
+          "schema": {
+            "$ref": "#/backend/entities/Chat"
+          },
+          "description": "Stores chat sessions between the user and the AI. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "chatId",
+              "description": "The unique identifier for the chat."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability, aligning with the specified principles. It leverages path-based ownership for user-specific data and avoids hierarchical authorization dependencies.\n\n- **/users/{userId}/profile**: This collection stores user profiles. Security rules can easily validate `request.auth.uid == userId`.\n- **/users/{userId}/activities/{activityId}**: Activities are stored as a subcollection of users, ensuring that only the user can access their own activity data. The `userId` is denormalized, which provides authorization independence and allows for secure list operations (QAPs).\n- **/users/{userId}/chats/{chatId}**: Chats are also stored as a subcollection of users.  The `userId` is denormalized to each document, which provides authorization independence.\n\nThis structure supports the required QAPs (rules are not filters) by segregating data based on ownership.  Authorization rules can be written to allow only the authenticated user to read and write data within their own `/users/{userId}` path."
+  }
+}

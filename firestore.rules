@@ -1,0 +1,122 @@
+/**
+ * @file Firestore Security Rules for HealthWise Companion
+ * @version Prototyping
+ *
+ * @description This ruleset enforces a strict user-ownership model, ensuring that users can only access their own data.
+ *
+ * @dataStructure
+ *  - `/users/{userId}/profile`: Stores user profile information.  Each user has their own profile document.
+ *  - `/users/{userId}/activities/{activityId}`: Stores activity data for each user.
+ *  - `/users/{userId}/chats/{chatId}`: Stores chat sessions between the user and the AI.
+ *
+ * @keySecurityDecisions
+ *  - User data is segregated under `/users/{userId}` for clear ownership.
+ *  - Listing all users is disallowed.
+ *
+ * @denormalizationForAuthorization
+ *  - Each document in the `activities` and `chats` subcollections includes a `userId` field, denormalizing the user's ID into the document for easier authorization checks.
+ *
+ * @structuralSegregation
+ *  - User data is stored in private user subcollections, preventing accidental public exposure.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Ensures only authenticated users can access their own profile information.
+     * @path /users/{userId}/profile
+     * @allow (get) User 'abc' can read their own profile.
+     * @allow (create) User 'abc' can create their own profile.
+     * @allow (update) User 'abc' can update their own profile.
+     * @allow (delete) User 'abc' can delete their own profile.
+     * @deny (get) User 'xyz' cannot read user 'abc' profile.
+     * @deny (create) User 'xyz' cannot create user 'abc' profile.
+     * @deny (update) User 'xyz' cannot update user 'abc' profile.
+     * @deny (delete) User 'xyz' cannot delete user 'abc' profile.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/profile {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Ensures only authenticated users can access their own activity logs.
+     * @path /users/{userId}/activities/{activityId}
+     * @allow (get) User 'abc' can read their own activity '123'.
+     * @allow (create) User 'abc' can create their own activity '123'.
+     * @allow (update) User 'abc' can update their own activity '123'.
+     * @allow (delete) User 'abc' can delete their own activity '123'.
+     * @deny (get) User 'xyz' cannot read user 'abc' activity '123'.
+     * @deny (create) User 'xyz' cannot create user 'abc' activity '123'.
+     * @deny (update) User 'xyz' cannot update user 'abc' activity '123'.
+     * @deny (delete) User 'xyz' cannot delete user 'abc' activity '123'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/activities/{activityId} {
+       function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Ensures only authenticated users can access their own chat logs.
+     * @path /users/{userId}/chats/{chatId}
+     * @allow (get) User 'abc' can read their own chat '123'.
+     * @allow (create) User 'abc' can create their own chat '123'.
+     * @allow (update) User 'abc' can update their own chat '123'.
+     * @allow (delete) User 'abc' can delete their own chat '123'.
+     * @deny (get) User 'xyz' cannot read user 'abc' chat '123'.
+     * @deny (create) User 'xyz' cannot create user 'abc' chat '123'.
+     * @deny (update) User 'xyz' cannot update user 'abc' chat '123'.
+     * @deny (delete) User 'xyz' cannot delete user 'abc' chat '123'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/chats/{chatId} {
+       function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+  }
+}
