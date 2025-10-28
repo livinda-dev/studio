@@ -53,17 +53,6 @@ const getWeatherTool = ai.defineTool(
   }
 );
 
-
-const prompt = ai.definePrompt({
-  name: 'weatherAdvicePrompt',
-  input: { schema: GetWeatherInputSchema },
-  output: { schema: GetWeatherOutputSchema },
-  tools: [getWeatherTool],
-  prompt: `You are a helpful weather and health assistant. Get the current weather for the user's location and provide a short, relevant health tip.
-
-Location: {{{location}}}`,
-});
-
 const getWeatherFlow = ai.defineFlow(
   {
     name: 'getWeatherFlow',
@@ -71,23 +60,24 @@ const getWeatherFlow = ai.defineFlow(
     outputSchema: GetWeatherOutputSchema,
   },
   async input => {
-    const llmResponse = await prompt(input);
-    const toolResponse = llmResponse.toolRequest?.tool?.(getWeatherTool)?.output;
+    // First, explicitly call the tool to get the weather data.
+    const weatherData = await getWeatherTool(input);
 
-    if (!toolResponse) {
-        throw new Error("The model did not call the weather tool as expected.");
+    if (!weatherData) {
+        throw new Error("Could not retrieve weather data from the tool.");
     }
-    
+
+    // Then, use the weather data to generate health advice.
     const adviceResponse = await ai.generate({
-        prompt: `The weather is: ${toolResponse.condition}, ${toolResponse.temperature}°C, ${toolResponse.wind} km/h wind, ${toolResponse.humidity}% humidity. Give one short health advice sentence.`,
+        prompt: `The weather is: ${weatherData.condition}, ${weatherData.temperature}°C, ${weatherData.wind} km/h wind, ${weatherData.humidity}% humidity. Give one short health advice sentence.`,
         model: 'googleai/gemini-2.5-flash',
     });
 
     return {
-        temperature: toolResponse.temperature,
-        condition: toolResponse.condition,
-        windSpeed: toolResponse.wind,
-        humidity: toolResponse.humidity,
+        temperature: weatherData.temperature,
+        condition: weatherData.condition,
+        windSpeed: weatherData.wind,
+        humidity: weatherData.humidity,
         advice: adviceResponse.text,
     }
   }
