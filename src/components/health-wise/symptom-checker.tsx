@@ -80,98 +80,98 @@ export default function SymptomChecker() {
 
 
   return (
-    <Card className="flex h-[70vh] flex-col shadow-lg">
-      <CardHeader className="border-b">
-        <div className="flex items-center gap-3">
-          <Stethoscope className="h-6 w-6 text-primary" />
-          <CardTitle className="font-headline">AI Symptom Checker</CardTitle>
-        </div>
-        <CardDescription>
-          This is for educational purposes and is not a substitute for professional medical advice.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1 overflow-hidden p-0">
-        <ScrollArea className="h-full" ref={scrollAreaRef}>
-          <div className="p-6 space-y-6">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex items-start gap-3 ${
-                  message.sender === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
-                {message.sender !== "user" && (
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      <Bot className="h-5 w-5" />
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-                
-                {typeof message.content === 'string' ? (
-                  <div
-                    className={`max-w-md rounded-lg px-4 py-2 shadow-md ${
-                       message.sender === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-card border"
-                    } ${message.sender === 'system' ? 'w-full text-center bg-transparent border-none shadow-none text-muted-foreground text-sm' : ''}`}
-                  >
-                    <p>{message.content}</p>
-                  </div>
-                ) : (
-                  <div className="max-w-md rounded-lg px-4 py-3 shadow-md bg-secondary border space-y-4">
-                    <p className="font-semibold text-base">Analysis for: <span className="text-primary">{message.content.symptom}</span></p>
-                    <div>
-                      <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><AlertTriangle className="text-destructive h-4 w-4"/> Possible Causes</h3>
-                      <ul className="list-disc pl-5 space-y-1 text-xs text-muted-foreground">
-                        {message.content.possible_causes.map((cause, i) => <li key={i}>{cause}</li>)}
-                      </ul>
-                    </div>
-                      <div>
-                      <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><CheckCircle className="text-accent-foreground h-4 w-4"/> General Advice</h3>
-                      <p className="text-xs">{message.content.advice}</p>
-                    </div>
-                  </div>
-                )}
-
-                {message.sender === "user" && (
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>
-                      <User className="h-5 w-5" />
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-              </div>
-            ))}
-             {useFormStatus().pending && (
-                <div className="flex items-start gap-3 justify-start">
-                    <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary text-primary-foreground">
+    <div className="flex flex-col h-[calc(100vh-10rem)]">
+        <CardHeader className="border-b">
+            <div className="flex items-center gap-3">
+                <Stethoscope className="h-6 w-6 text-primary" />
+                <CardTitle className="font-headline">AI Symptom Checker</CardTitle>
+            </div>
+            <CardDescription>
+                This is for educational purposes and is not a substitute for professional medical advice.
+            </CardDescription>
+        </CardHeader>
+        <div className="flex-1 overflow-hidden p-0">
+            <ScrollArea className="h-full" ref={scrollAreaRef}>
+                <div className="p-6 space-y-6">
+                    {messages.map((message) => (
+                    <div
+                        key={message.id}
+                        className={`flex items-start gap-3 ${
+                        message.sender === "user" ? "justify-end" : "justify-start"
+                        }`}
+                    >
+                        {message.sender !== "user" && (
+                        <Avatar className="h-8 w-8">
+                            <AvatarFallback className="bg-primary text-primary-foreground">
                             <Bot className="h-5 w-5" />
-                        </AvatarFallback>
-                    </Avatar>
-                    <div className="max-w-md rounded-lg px-4 py-2 shadow-md bg-card border flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin"/>
-                        <p className="text-muted-foreground">AI is thinking...</p>
+                            </AvatarFallback>
+                        </Avatar>
+                        )}
+                        
+                        {typeof message.content === 'string' ? (
+                        <div
+                            className={`max-w-md rounded-lg px-4 py-2 shadow-md ${
+                            message.sender === "user"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-card border"
+                            } ${message.sender === 'system' ? 'w-full text-center bg-transparent border-none shadow-none text-muted-foreground text-sm' : ''}`}
+                        >
+                            <p>{message.content}</p>
+                        </div>
+                        ) : (
+                        <div className="max-w-md rounded-lg px-4 py-3 shadow-md bg-secondary border space-y-4">
+                            <p className="font-semibold text-base">Analysis for: <span className="text-primary">{message.content.symptom}</span></p>
+                            <div>
+                            <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><AlertTriangle className="text-destructive h-4 w-4"/> Possible Causes</h3>
+                            <ul className="list-disc pl-5 space-y-1 text-xs text-muted-foreground">
+                                {message.content.possible_causes.map((cause, i) => <li key={i}>{cause}</li>)}
+                            </ul>
+                            </div>
+                            <div>
+                            <h3 className="font-semibold mb-2 flex items-center gap-2 text-sm"><CheckCircle className="text-accent-foreground h-4 w-4"/> General Advice</h3>
+                            <p className="text-xs">{message.content.advice}</p>
+                            </div>
+                        </div>
+                        )}
+
+                        {message.sender === "user" && (
+                        <Avatar className="h-8 w-8">
+                            <AvatarFallback>
+                            <User className="h-5 w-5" />
+                            </AvatarFallback>
+                        </Avatar>
+                        )}
                     </div>
+                    ))}
+                    {useFormStatus().pending && (
+                        <div className="flex items-start gap-3 justify-start">
+                            <Avatar className="h-8 w-8">
+                                <AvatarFallback className="bg-primary text-primary-foreground">
+                                    <Bot className="h-5 w-5" />
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="max-w-md rounded-lg px-4 py-2 shadow-md bg-card border flex items-center gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin"/>
+                                <p className="text-muted-foreground">AI is thinking...</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
-            )}
-          </div>
-        </ScrollArea>
-      </CardContent>
-      <CardFooter className="border-t p-4">
-        <form ref={formRef} action={handleFormSubmit} className="flex w-full items-center gap-2">
-          <Input
-            name="symptomDescription"
-            placeholder="Type your symptoms here..."
-            className="flex-1"
-            autoComplete="off"
-            required
-            disabled={useFormStatus().pending}
-          />
-          <SubmitButton />
-        </form>
-      </CardFooter>
-    </Card>
+            </ScrollArea>
+        </div>
+        <CardFooter className="border-t p-4">
+            <form ref={formRef} action={handleFormSubmit} className="flex w-full items-center gap-2">
+                <Input
+                    name="symptomDescription"
+                    placeholder="Type your symptoms here..."
+                    className="flex-1"
+                    autoComplete="off"
+                    required
+                    disabled={useFormStatus().pending}
+                />
+                <SubmitButton />
+            </form>
+        </CardFooter>
+    </div>
   );
 }
