@@ -74,15 +74,16 @@ export default function SymptomChecker() {
       ]);
       
       const historyForAI = messages.map(msg => {
+          if (msg.sender === 'system') return null; // Don't include system messages
           if (typeof msg.content === 'string') {
-              if (msg.sender === 'user') {
-                  return { message: msg.content };
-              } else {
-                  return { textResponse: msg.content };
-              }
+              // This handles user messages and simple string AI responses
+              return msg.sender === 'user' 
+                  ? { message: msg.content }
+                  : { textResponse: msg.content, type: 'conversational' };
           }
+          // This handles complex AI responses (HealthCompanionOutput)
           return msg.content;
-      }).filter(c => (c as HealthCompanionOutput).type); // only send valid history
+      }).filter(Boolean); // Remove nulls
 
       formData.set('history', JSON.stringify(historyForAI));
       
@@ -186,4 +187,3 @@ export default function SymptomChecker() {
     </div>
   );
 }
-
