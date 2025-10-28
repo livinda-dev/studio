@@ -68,22 +68,21 @@ export default function SymptomChecker() {
   const handleFormSubmit = async (formData: FormData) => {
     const message = formData.get("message") as string;
     if (message.trim()) {
-      setMessages((prev) => [
-        ...prev,
+      const newMessages: Message[] = [
+        ...messages,
         { id: Date.now(), sender: "user", content: message },
-      ]);
+      ];
+      setMessages(newMessages);
       
-      const historyForAI = messages.map(msg => {
-          if (msg.sender === 'system') return null; // Don't include system messages
-          if (typeof msg.content === 'string') {
-              // This handles user messages and simple string AI responses
-              return msg.sender === 'user' 
-                  ? { message: msg.content }
-                  : { textResponse: msg.content, type: 'conversational' };
-          }
-          // This handles complex AI responses (HealthCompanionOutput)
-          return msg.content;
-      }).filter(Boolean); // Remove nulls
+      const historyForAI = newMessages.map(msg => {
+        if (msg.sender === 'system') return null;
+        if (typeof msg.content === 'string') {
+            return msg.sender === 'user' 
+                ? { message: msg.content, type: 'conversational' }
+                : { textResponse: msg.content, type: 'conversational' };
+        }
+        return msg.content;
+      }).filter(Boolean);
 
       formData.set('history', JSON.stringify(historyForAI));
       
@@ -172,7 +171,7 @@ export default function SymptomChecker() {
         </div>
         <div className="border-t p-4">
             <form ref={formRef} action={handleFormSubmit} className="flex w-full items-center gap-2">
-                <input type="hidden" name="history" value={JSON.stringify(messages.map(m => m.content))} />
+                <input type="hidden" name="history" value={JSON.stringify(messages.filter(m => m.sender !== 'system').map(m => m.content))} />
                 <Input
                     name="message"
                     placeholder="Ask me about symptoms or just say hi..."
