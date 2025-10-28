@@ -110,13 +110,14 @@
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "phone",
+      "google.com"
     ]
   },
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}/profile",
+        "path": "/users/{userId}",
         "definition": {
           "entityName": "UserProfile",
           "schema": {
@@ -172,6 +173,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability, aligning with the specified principles. It leverages path-based ownership for user-specific data and avoids hierarchical authorization dependencies.\n\n- **/users/{userId}/profile**: This collection stores user profiles. Security rules can easily validate `request.auth.uid == userId`.\n- **/users/{userId}/activities/{activityId}**: Activities are stored as a subcollection of users, ensuring that only the user can access their own activity data. The `userId` is denormalized, which provides authorization independence and allows for secure list operations (QAPs).\n- **/users/{userId}/chats/{chatId}**: Chats are also stored as a subcollection of users.  The `userId` is denormalized to each document, which provides authorization independence.\n\nThis structure supports the required QAPs (rules are not filters) by segregating data based on ownership.  Authorization rules can be written to allow only the authenticated user to read and write data within their own `/users/{userId}` path."
+    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability, aligning with the specified principles. It leverages path-based ownership for user-specific data and avoids hierarchical authorization dependencies.\n\n- **/users/{userId}**: This collection stores user profiles. Security rules can easily validate `request.auth.uid == userId`.\n- **/users/{userId}/activities/{activityId}**: Activities are stored as a subcollection of users, ensuring that only the user can access their own activity data. The `userId` is denormalized, which provides authorization independence and allows for secure list operations (QAPs).\n- **/users/{userId}/chats/{chatId}**: Chats are also stored as a subcollection of users.  The `userId` is denormalized to each document, which provides authorization independence.\n\nThis structure supports the required QAPs (rules are not filters) by segregating data based on ownership.  Authorization rules can be written to allow only the authenticated user to read and write data within their own `/users/{userId}` path."
   }
 }

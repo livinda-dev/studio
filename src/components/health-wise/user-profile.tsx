@@ -9,25 +9,69 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
+import { useFirebase } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { Skeleton } from '../ui/skeleton';
 
 export default function UserProfile() {
     const [notifications, setNotifications] = useState(true);
+    const { user, auth, isUserLoading } = useFirebase();
+
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            // The AuthProvider will handle the redirect.
+        } catch (error) {
+            console.error("Error signing out:", error);
+        }
+    };
+
+    if (isUserLoading) {
+        return (
+             <Card className="shadow-lg">
+                <CardHeader>
+                    <div className="flex items-center gap-4">
+                        <Skeleton className="h-16 w-16 rounded-full" />
+                        <div className='space-y-2'>
+                           <Skeleton className="h-6 w-32" />
+                           <Skeleton className="h-4 w-48" />
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <Skeleton className="h-12 w-full" />
+                    <Separator/>
+                     <div className="space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <div className="flex gap-2">
+                           <Skeleton className="h-9 w-full" />
+                           <Skeleton className="h-9 w-full" />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        )
+    }
+
 
     return (
         <Card className="shadow-lg">
             <CardHeader>
+                 <h1 className="text-2xl font-bold font-headline text-foreground mb-4">
+                    My Profile
+                </h1>
                 <div className="flex items-center gap-4">
                     <Avatar className="h-16 w-16 border-2 border-primary">
-                         <AvatarImage src="https://picsum.photos/seed/user-avatar/64/64" alt="User Avatar" data-ai-hint="person face" />
+                         <AvatarImage src={user?.photoURL || "https://picsum.photos/seed/user-avatar/64/64"} alt={user?.displayName || "User Avatar"} data-ai-hint="person face" />
                         <AvatarFallback>
                             <User className="h-8 w-8" />
                         </AvatarFallback>
                     </Avatar>
                     <div>
-                        <CardTitle className="text-xl font-headline">Alex Doe</CardTitle>
+                        <CardTitle className="text-xl font-headline">{user?.displayName || 'Welcome'}</CardTitle>
                         <CardDescription className="flex items-center gap-2 text-sm">
                             <Mail className="h-4 w-4"/>
-                            alex.doe@example.com
+                            {user?.email || 'No email provided'}
                         </CardDescription>
                     </div>
                 </div>
@@ -57,7 +101,7 @@ export default function UserProfile() {
                                 Settings
                             </Link>
                         </Button>
-                        <Button variant="destructive" size="sm" className="flex-1">
+                        <Button variant="destructive" size="sm" className="flex-1" onClick={handleLogout}>
                             <LogOut className="mr-2 h-4 w-4" />
                             Log Out
                         </Button>
