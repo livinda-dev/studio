@@ -60,26 +60,22 @@ function ChatForm({
   inputValue,
   onInputChange,
   onVoiceSubmit,
-  isListening
+  isListening,
+  formRef
 }: {
   onFormAction: (formData: FormData) => void;
   inputValue: string;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onVoiceSubmit: () => void;
   isListening: boolean;
+  formRef: React.RefObject<HTMLFormElement>;
 }) {
-  const formRef = useRef<HTMLFormElement>(null);
   const { pending } = useFormStatus();
 
   return (
     <form
       ref={formRef}
-      action={(formData) => {
-        onFormAction(formData);
-        if (!pending) {
-          formRef.current?.reset();
-        }
-      }}
+      action={onFormAction}
       className="flex w-full items-center gap-2"
     >
       <Input
@@ -109,7 +105,7 @@ export default function SymptomChecker() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recognitionRef = useRef<any>(null);
-
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Setup Speech Recognition
   useEffect(() => {
@@ -279,17 +275,19 @@ export default function SymptomChecker() {
   
   const handleFormAction = (formData: FormData) => {
     const message = formData.get("message") as string;
-    if (message.trim()) {
-      const currentUserMessage: Message = { id: Date.now(), sender: "user", content: message };
-      const newMessages = [...messages, currentUserMessage];
-      setMessages(newMessages);
+    if (!message.trim()) return;
 
-      const historyJson = JSON.stringify(newMessages);
-      formData.set('history', historyJson);
-      
-      formAction(formData);
-      setInputValue("");
-    }
+    const currentUserMessage: Message = { id: Date.now(), sender: "user", content: message };
+    const newMessages = [...messages, currentUserMessage];
+    setMessages(newMessages);
+    
+    const historyJson = JSON.stringify(newMessages);
+    formData.set('history', historyJson);
+    
+    formAction(formData);
+
+    setInputValue("");
+    formRef.current?.reset();
   };
 
   const playAudio = (audioData: string) => {
@@ -398,6 +396,7 @@ export default function SymptomChecker() {
         </div>
         <div className="border-t p-4">
              <ChatForm
+                formRef={formRef}
                 onFormAction={handleFormAction}
                 inputValue={inputValue}
                 onInputChange={(e) => setInputValue(e.target.value)}
