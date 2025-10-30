@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { Bot, Send, User, Loader2, Volume2 } from "lucide-react";
 import { handleChatMessage, handleReminder } from "@/app/actions";
 import { type HealthCompanionOutput } from "@/ai/flows/schemas";
@@ -77,7 +78,7 @@ function ChatForm({
 }
 
 export default function SymptomChecker() {
-  const [state, formAction] = useFormState(handleChatMessage, initialState);
+  const [state, formAction] = useActionState(handleChatMessage, initialState);
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -260,7 +261,7 @@ export default function SymptomChecker() {
                                     isUser
                                         ? "bg-primary text-primary-foreground"
                                         : "bg-card border"
-                                    } ${isSystem ? 'w-full text-center bg-transparent border-none shadow-none text-muted-foreground text-sm' : ''}`}
+                                    } ${isSystem ? 'w-full text-center justify-center bg-transparent border-none shadow-none text-muted-foreground text-sm' : ''}`}
                                 >
                                     <div>
                                         <p>{contentText}</p>
