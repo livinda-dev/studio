@@ -59,7 +59,8 @@ function ChatForm({ formRef, onMessageChange, message }: { formRef: React.RefObj
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
-  const { pending } = useFormStatus();
+  const formStatus = useFormStatus();
+  const { pending } = formStatus;
 
   useEffect(() => {
     if (pending) {
@@ -235,11 +236,6 @@ export default function SymptomChecker() {
     }
   }, [messages]);
 
-  useEffect(() => {
-    if (useFormStatus().pending) {
-        setInputValue("");
-    }
-  }, [useFormStatus().pending]);
   
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) {
@@ -446,6 +442,8 @@ export default function SymptomChecker() {
     </div>
   );
 }
+
+    
 
     
 
