@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useActionState } from "react";
-import { useFormStatus } from "react-dom";
+import React, { useState, useRef, useEffect } from "react";
+import { useFormState, useFormStatus } from "react-dom";
 import { Bot, Send, User, Loader2, Volume2 } from "lucide-react";
 import { handleChatMessage, handleReminder } from "@/app/actions";
 import { type HealthCompanionOutput } from "@/ai/flows/schemas";
@@ -44,11 +44,42 @@ function SubmitButton() {
   );
 }
 
+function ChatForm({
+  onFormAction,
+}: {
+  onFormAction: (formData: FormData) => void;
+}) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const { pending } = useFormStatus();
+
+  return (
+    <form
+      ref={formRef}
+      action={(formData) => {
+        onFormAction(formData);
+        if (!pending) {
+          formRef.current?.reset();
+        }
+      }}
+      className="flex w-full items-center gap-2"
+    >
+      <Input
+        name="message"
+        placeholder="Ask me about symptoms or just say hi..."
+        className="flex-1"
+        autoComplete="off"
+        required
+        disabled={pending}
+      />
+      <SubmitButton />
+    </form>
+  );
+}
+
 export default function SymptomChecker() {
-  const [state, formAction] = useActionState(handleChatMessage, initialState);
+  const [state, formAction] = useFormState(handleChatMessage, initialState);
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
-  const formRef = useRef<HTMLFormElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -109,7 +140,7 @@ export default function SymptomChecker() {
   const onAcceptReminder = async (reminder: Reminder) => {
     const permissionGranted = await requestNotificationPermission();
     if (permissionGranted) {
-      const serverResponse = await handleReminder(reminder);
+      await handleReminder(reminder);
       // Also save to localStorage as a backup/quick access method
       localStorage.setItem('healthwise-reminder', JSON.stringify({ ...reminder, lastShown: Date.now() }));
       toast({
@@ -160,17 +191,17 @@ export default function SymptomChecker() {
     }
   }, [messages]);
   
-  const handleFormSubmit = async (formData: FormData) => {
+  const handleFormAction = (formData: FormData) => {
     const message = formData.get("message") as string;
     if (message.trim()) {
       const currentUserMessage: Message = { id: Date.now(), sender: "user", content: message };
-      setMessages(prev => [...prev, currentUserMessage]);
-      
-      const historyJson = JSON.stringify(messages);
+      const newMessages = [...messages, currentUserMessage];
+      setMessages(newMessages);
+
+      const historyJson = JSON.stringify(newMessages);
       formData.set('history', historyJson);
       
       formAction(formData);
-      formRef.current?.reset();
     }
   };
 
@@ -275,17 +306,7 @@ export default function SymptomChecker() {
             </ScrollArea>
         </div>
         <div className="border-t p-4">
-            <form ref={formRef} action={handleFormSubmit} className="flex w-full items-center gap-2">
-                <Input
-                    name="message"
-                    placeholder="Ask me about symptoms or just say hi..."
-                    className="flex-1"
-                    autoComplete="off"
-                    required
-                    disabled={useFormStatus().pending}
-                />
-                <SubmitButton />
-            </form>
+            <ChatForm onFormAction={handleFormAction} />
         </div>
     </div>
   );
