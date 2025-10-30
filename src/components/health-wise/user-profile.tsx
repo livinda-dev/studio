@@ -104,7 +104,7 @@ export default function UserProfile() {
                     <h3 className="text-sm font-semibold text-muted-foreground">Account Actions</h3>
                     <div className="flex flex-col gap-2">
                          <Button variant="outline" className="w-full justify-start" asChild>
-                           <Link href="https://t.me/your_bot_username" target="_blank">
+                           <Link href="https://t.me/Tamdambot" target="_blank">
                                 <TelegramIcon className="mr-2 h-5 w-5"/>
                                 Connect with Telegram
                             </Link>
