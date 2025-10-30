@@ -34,19 +34,19 @@ export async function handleChatMessage(
   if (validatedFields.data.history) {
     try {
       const rawHistory = JSON.parse(validatedFields.data.history);
+      // Filter out system messages and map to the format the AI expects
       historyForAI = rawHistory.map((msg: any): HistoryMessage | null => {
         if (msg.sender === 'user' && typeof msg.content === 'string') {
           return { role: 'user', content: msg.content };
         }
-        if (msg.sender === 'ai' && typeof msg.content === 'object' && msg.content !== null && msg.content.textResponse) {
-          // We only care about the text response for the history
+        // When processing history, AI responses are objects. Extract the text.
+        if (msg.sender === 'ai' && typeof msg.content === 'object' && msg.content !== null && typeof msg.content.textResponse === 'string') {
           return { role: 'model', content: msg.content.textResponse };
         }
         return null;
       }).filter((item: HistoryMessage | null): item is HistoryMessage => item !== null && item.content.trim() !== '');
     } catch (e) {
       console.error("Failed to parse chat history:", e);
-      // Decide how to handle corrupted history. Maybe clear it or just ignore.
     }
   }
 

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useOptimistic } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Bot, Send, User, Loader2, Volume2, Mic, MicOff } from "lucide-react";
@@ -25,7 +25,7 @@ type ToolRequest = { name: string; args: any };
 
 type MessageContent = string | (HealthCompanionOutput & { toolRequests?: ToolRequest[] });
 
-type Message = {
+export type Message = {
   id: number;
   sender: "user" | "ai" | "system";
   content: MessageContent;
@@ -55,20 +55,11 @@ declare global {
     }
 }
 
-function ChatForm({
-  formAction,
-  setMessages,
-  messages,
-}: {
-  formAction: (formData: FormData) => void;
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
-  messages: Message[];
-}) {
+function ChatForm() {
   const [inputValue, setInputValue] = useState("");
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const { toast } = useToast();
-  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -126,33 +117,8 @@ function ChatForm({
     }
   };
 
-
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const message = formData.get("message") as string;
-
-    if (!message.trim()) return;
-
-    const currentUserMessage: Message = { id: Date.now(), sender: "user", content: message };
-    const newMessages = [...messages, currentUserMessage];
-    setMessages(newMessages);
-
-    const historyJson = JSON.stringify(newMessages);
-    formData.set('history', historyJson);
-
-    formAction(formData);
-
-    setInputValue("");
-    formRef.current?.reset();
-  };
-
   return (
-    <form
-      ref={formRef}
-      onSubmit={handleFormSubmit}
-      className="flex w-full items-center gap-2"
-    >
+    <div className="flex w-full items-center gap-2">
       <Input
         name="message"
         placeholder="Ask me about symptoms or just say hi..."
@@ -166,14 +132,14 @@ function ChatForm({
           {isListening ? <MicOff className="h-5 w-5 text-destructive" /> : <Mic className="h-5 w-5" />}
       </Button>
       <SubmitButton />
-    </form>
+    </div>
   );
 }
 
 export default function SymptomChecker() {
-  const [state, formAction] = useActionState(handleChatMessage, initialState);
-  const { toast } = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -202,7 +168,6 @@ export default function SymptomChecker() {
         if (messages.length > 0) {
             localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages));
         } else {
-            // If messages are cleared, remove from storage as well
             localStorage.removeItem(CHAT_HISTORY_KEY);
         }
     } catch (error) {
@@ -210,6 +175,19 @@ export default function SymptomChecker() {
     }
   }, [messages]);
 
+  const [optimisticMessages, addOptimisticMessage] = useOptimistic(
+    messages,
+    (state: Message[], newMessage: string) => [
+      ...state,
+      {
+        id: Date.now(),
+        sender: "user",
+        content: newMessage,
+      },
+    ]
+  );
+  
+  const [state, formAction] = useActionState(handleChatMessage, initialState);
 
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) {
@@ -235,7 +213,6 @@ export default function SymptomChecker() {
     const permissionGranted = await requestNotificationPermission();
     if (permissionGranted) {
       await handleReminder(reminder);
-      // Also save to localStorage as a backup/quick access method
       localStorage.setItem('healthwise-reminder', JSON.stringify({ ...reminder, lastShown: Date.now() }));
       toast({
         title: 'Reminder Set!',
@@ -247,14 +224,11 @@ export default function SymptomChecker() {
   useEffect(() => {
     if (state.data) {
       const newAiMessage: Message = { id: Date.now(), sender: "ai", content: state.data };
-      
       const toolRequests = (state.data.toolRequests || []) as ToolRequest[];
       const clearHistoryToolCall = toolRequests.find(tool => tool.name === 'clearChatHistoryTool');
 
       if (clearHistoryToolCall) {
-        // Clear history but show the AI's confirmation message first.
         setMessages([newAiMessage]);
-        // After a very short delay, reset to just the welcome message.
         setTimeout(() => {
             setMessages([{ id: Date.now(), sender: "system", content: SYSTEM_MESSAGE_WELCOME }]);
         }, 2000);
@@ -262,7 +236,6 @@ export default function SymptomChecker() {
         setMessages((prev) => [...prev, newAiMessage]);
       }
       
-      // Auto-play audio if available
       if (state.data.audioData && audioRef.current) {
         audioRef.current.src = state.data.audioData;
         audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
@@ -283,7 +256,7 @@ export default function SymptomChecker() {
             viewport.scrollTop = viewport.scrollHeight;
         }
     }
-  }, [messages]);
+  }, [optimisticMessages]);
   
   const playAudio = (audioData: string) => {
       if(audioRef.current) {
@@ -299,7 +272,7 @@ export default function SymptomChecker() {
         <div className="flex-1 overflow-hidden p-0">
             <ScrollArea className="h-full" ref={scrollAreaRef}>
                 <div className="p-6 space-y-6">
-                    {messages.map((message) => {
+                    {optimisticMessages.map((message) => {
                        const isUser = message.sender === 'user';
                        const isSystem = message.sender === 'system';
                        
@@ -326,7 +299,7 @@ export default function SymptomChecker() {
                                 className={cn(
                                 'flex items-start gap-3',
                                 isUser ? 'justify-end' : 'justify-start',
-                                isSystem ? 'justify-center' : ''
+                                isSystem ? 'w-full justify-center' : ''
                                 )}
                             >
                                 {!isUser && !isSystem && (
@@ -342,7 +315,7 @@ export default function SymptomChecker() {
                                         'max-w-md rounded-lg px-4 py-2 shadow-md flex items-center gap-2',
                                         isUser ? 'bg-primary text-primary-foreground' : 'bg-card border',
                                         isSystem
-                                        ? 'w-full text-center justify-center bg-transparent border-none shadow-none text-muted-foreground text-sm'
+                                        ? 'bg-transparent border-none shadow-none text-muted-foreground text-sm'
                                         : ''
                                     )}
                                 >
@@ -390,14 +363,30 @@ export default function SymptomChecker() {
             </ScrollArea>
         </div>
         <div className="border-t p-4">
-             <ChatForm
-                formAction={formAction}
-                setMessages={setMessages}
-                messages={messages}
-            />
+             <form
+                ref={formRef}
+                action={async (formData) => {
+                    const message = formData.get("message") as string;
+                    if (!message.trim()) return;
+                    
+                    addOptimisticMessage(message);
+                    
+                    const historyWithOptimistic = [
+                        ...messages,
+                        { id: 0, sender: "user", content: message } // temp message for history
+                    ];
+
+                    const historyJson = JSON.stringify(historyWithOptimistic);
+                    formData.set('history', historyJson);
+
+                    formAction(formData);
+
+                    formRef.current?.reset();
+                }}
+            >
+              <ChatForm />
+            </form>
         </div>
     </div>
   );
 }
-
-    
