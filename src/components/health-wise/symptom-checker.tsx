@@ -3,7 +3,7 @@
 
 import React, { useState, useRef, useEffect, useOptimistic, useActionState as useFormState } from "react";
 import { useFormStatus } from "react-dom";
-import { Bot, Send, User, Loader2, Volume2, Mic, MicOff } from "lucide-react";
+import { Bot, Send, User, Loader2, Volume2, Mic, MicOff, Square } from "lucide-react";
 import { handleChatMessage, handleReminder } from "@/app/actions";
 import { type HealthCompanionOutput } from "@/ai/flows/schemas";
 import { Input } from "@/components/ui/input";
@@ -57,16 +57,38 @@ declare global {
 function ChatForm({ formRef, onMessageChange, message }: { formRef: React.RefObject<HTMLFormElement>, onMessageChange: (value: string) => void, message: string }) {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const { pending } = useFormStatus();
 
   useEffect(() => {
     if (pending) {
-      onMessageChange(''); // Clear input on submission start
+      onMessageChange('');
     }
   }, [pending, onMessageChange]);
 
+  const submitForm = () => {
+    if (formRef.current && message.trim()) {
+      formRef.current.requestSubmit();
+    }
+  };
 
+  const handleSilence = () => {
+    console.log("Silence detected, submitting form.");
+    submitForm();
+    stopListening();
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+        recognitionRef.current.stop();
+    }
+    if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+    }
+    setIsListening(false);
+  };
+  
   useEffect(() => {
     if (typeof window !== 'undefined') {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -77,6 +99,8 @@ function ChatForm({ formRef, onMessageChange, message }: { formRef: React.RefObj
             recognition.lang = 'en-US';
 
             recognition.onresult = (event: any) => {
+                if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+
                 let interimTranscript = '';
                 let finalTranscript = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -86,13 +110,19 @@ function ChatForm({ formRef, onMessageChange, message }: { formRef: React.RefObj
                         interimTranscript += event.results[i][0].transcript;
                     }
                 }
-                onMessageChange(finalTranscript + interimTranscript);
+                
+                const fullTranscript = finalTranscript + interimTranscript;
+                onMessageChange(fullTranscript);
+
+                if(finalTranscript.trim() || interimTranscript.trim()) {
+                   silenceTimerRef.current = setTimeout(handleSilence, 2000);
+                }
             };
 
             recognition.onerror = (event: any) => {
                 console.error("Speech recognition error", event.error);
                 toast({ variant: 'destructive', title: 'Voice Error', description: `Speech recognition error: ${event.error}` });
-                setIsListening(false);
+                stopListening();
             };
 
             recognition.onend = () => {
@@ -107,6 +137,15 @@ function ChatForm({ formRef, onMessageChange, message }: { formRef: React.RefObj
             console.warn("Speech Recognition not supported by this browser.");
         }
     }
+    
+    return () => {
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+        }
+        if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+        }
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast]);
 
@@ -116,12 +155,16 @@ function ChatForm({ formRef, onMessageChange, message }: { formRef: React.RefObj
          toast({ variant: 'destructive', title: 'Unsupported', description: "Voice input is not supported in your browser." });
         return;
     }
-    const currentlyListening = isListening;
-    setIsListening(!currentlyListening);
-    if (!currentlyListening) {
-      recognitionRef.current.start();
+    
+    if (isListening) {
+        stopListening();
+        if(message.trim()) {
+            submitForm();
+        }
     } else {
-      recognitionRef.current.stop();
+        setIsListening(true);
+        onMessageChange('');
+        recognitionRef.current.start();
     }
   };
 
@@ -135,9 +178,10 @@ function ChatForm({ formRef, onMessageChange, message }: { formRef: React.RefObj
         required
         value={message}
         onChange={(e) => onMessageChange(e.target.value)}
+        disabled={isListening}
       />
-      <Button type="button" size="icon" variant="outline" onClick={toggleListening} aria-label={isListening ? "Stop listening" : "Start listening"}>
-          {isListening ? <MicOff className="h-5 w-5 text-destructive" /> : <Mic className="h-5 w-5" />}
+      <Button type="button" size="icon" variant={isListening ? 'destructive' : 'outline'} onClick={toggleListening} aria-label={isListening ? "Stop listening" : "Start listening"}>
+          {isListening ? <Square className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
       </Button>
       <SubmitButton />
     </div>
@@ -190,6 +234,12 @@ export default function SymptomChecker() {
          console.error("Failed to save chat history to localStorage", error);
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (useFormStatus().pending) {
+        setInputValue("");
+    }
+  }, [useFormStatus().pending]);
   
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) {
@@ -396,5 +446,7 @@ export default function SymptomChecker() {
     </div>
   );
 }
+
+    
 
     
