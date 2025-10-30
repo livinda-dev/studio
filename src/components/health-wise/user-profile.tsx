@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from 'react';
-import { User, Mail, Bell, BellOff, Settings, LogOut } from 'lucide-react';
+import { User, Mail, Bell, BellOff, Settings, LogOut, Moon, Sun } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -12,6 +12,8 @@ import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Skeleton } from '../ui/skeleton';
+import { useTheme } from 'next-themes';
+import { ThemeToggle } from '../theme-toggle';
 
 const TelegramIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
@@ -23,6 +25,7 @@ const TelegramIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export default function UserProfile() {
     const [notifications, setNotifications] = useState(true);
     const { user, auth, isUserLoading } = useFirebase();
+    const { theme } = useTheme();
 
     const handleLogout = async () => {
         try {
@@ -47,11 +50,11 @@ export default function UserProfile() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <Skeleton className="h-12 w-full" />
+                     <Skeleton className="h-12 w-full" />
                     <Separator/>
                      <div className="space-y-2">
                         <Skeleton className="h-4 w-24" />
                         <div className="flex flex-col gap-2">
-                           <Skeleton className="h-9 w-full" />
                            <Skeleton className="h-9 w-full" />
                            <Skeleton className="h-9 w-full" />
                         </div>
@@ -85,6 +88,15 @@ export default function UserProfile() {
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
+                 <div className="md:hidden flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="flex items-center space-x-3">
+                        {theme === 'dark' ? <Moon className="h-5 w-5 text-primary" /> : <Sun className="h-5 w-5 text-primary" />}
+                        <Label htmlFor="theme-switch-mobile" className="font-medium">
+                           Dark Mode
+                        </Label>
+                    </div>
+                    <ThemeToggle />
+                </div>
                 <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                     <div className="flex items-center space-x-3">
                         {notifications ? <Bell className="h-5 w-5 text-primary" /> : <BellOff className="h-5 w-5 text-muted-foreground" />}

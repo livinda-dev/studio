@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Bot } from 'lucide-react';
+import { ThemeToggle } from '../theme-toggle';
 
 const navItems = [
   { href: '/chat', label: 'AI Chat' },
@@ -41,7 +42,9 @@ export default function TopNavbar() {
             );
             })}
         </div>
-        <div className='hidden md:block w-[140px]'></div>
+        <div className='hidden md:flex w-[140px] justify-end'>
+            <ThemeToggle />
+        </div>
       </nav>
     </header>
   );
