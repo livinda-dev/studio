@@ -56,58 +56,20 @@ declare global {
 }
 
 function ChatForm({
-  onFormAction,
-  inputValue,
-  onInputChange,
-  onVoiceSubmit,
-  isListening,
-  formRef
+  formAction,
+  setMessages,
+  messages,
 }: {
-  onFormAction: (formData: FormData) => void;
-  inputValue: string;
-  onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onVoiceSubmit: () => void;
-  isListening: boolean;
-  formRef: React.RefObject<HTMLFormElement>;
+  formAction: (formData: FormData) => void;
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  messages: Message[];
 }) {
-  const { pending } = useFormStatus();
-
-  return (
-    <form
-      ref={formRef}
-      action={onFormAction}
-      className="flex w-full items-center gap-2"
-    >
-      <Input
-        name="message"
-        placeholder="Ask me about symptoms or just say hi..."
-        className="flex-1"
-        autoComplete="off"
-        required
-        disabled={pending}
-        value={inputValue}
-        onChange={onInputChange}
-      />
-      <Button type="button" size="icon" variant="outline" onClick={onVoiceSubmit} disabled={pending} aria-label={isListening ? "Stop listening" : "Start listening"}>
-          {isListening ? <MicOff className="h-5 w-5 text-destructive" /> : <Mic className="h-5 w-5" />}
-      </Button>
-      <SubmitButton />
-    </form>
-  );
-}
-
-export default function SymptomChecker() {
-  const [state, formAction] = useActionState(handleChatMessage, initialState);
-  const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const recognitionRef = useRef<any>(null);
+  const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Setup Speech Recognition
   useEffect(() => {
     if (typeof window !== 'undefined') {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -164,6 +126,56 @@ export default function SymptomChecker() {
     }
   };
 
+
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const message = formData.get("message") as string;
+
+    if (!message.trim()) return;
+
+    const currentUserMessage: Message = { id: Date.now(), sender: "user", content: message };
+    const newMessages = [...messages, currentUserMessage];
+    setMessages(newMessages);
+
+    const historyJson = JSON.stringify(newMessages);
+    formData.set('history', historyJson);
+
+    formAction(formData);
+
+    setInputValue("");
+    formRef.current?.reset();
+  };
+
+  return (
+    <form
+      ref={formRef}
+      onSubmit={handleFormSubmit}
+      className="flex w-full items-center gap-2"
+    >
+      <Input
+        name="message"
+        placeholder="Ask me about symptoms or just say hi..."
+        className="flex-1"
+        autoComplete="off"
+        required
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+      />
+      <Button type="button" size="icon" variant="outline" onClick={toggleListening} aria-label={isListening ? "Stop listening" : "Start listening"}>
+          {isListening ? <MicOff className="h-5 w-5 text-destructive" /> : <Mic className="h-5 w-5" />}
+      </Button>
+      <SubmitButton />
+    </form>
+  );
+}
+
+export default function SymptomChecker() {
+  const [state, formAction] = useActionState(handleChatMessage, initialState);
+  const { toast } = useToast();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Load chat history from localStorage on initial render
   useEffect(() => {
@@ -273,23 +285,6 @@ export default function SymptomChecker() {
     }
   }, [messages]);
   
-  const handleFormAction = (formData: FormData) => {
-    const message = formData.get("message") as string;
-    if (!message.trim()) return;
-
-    const currentUserMessage: Message = { id: Date.now(), sender: "user", content: message };
-    const newMessages = [...messages, currentUserMessage];
-    setMessages(newMessages);
-    
-    const historyJson = JSON.stringify(newMessages);
-    formData.set('history', historyJson);
-    
-    formAction(formData);
-
-    setInputValue("");
-    formRef.current?.reset();
-  };
-
   const playAudio = (audioData: string) => {
       if(audioRef.current) {
           audioRef.current.src = audioData;
@@ -396,12 +391,9 @@ export default function SymptomChecker() {
         </div>
         <div className="border-t p-4">
              <ChatForm
-                formRef={formRef}
-                onFormAction={handleFormAction}
-                inputValue={inputValue}
-                onInputChange={(e) => setInputValue(e.target.value)}
-                onVoiceSubmit={toggleListening}
-                isListening={isListening}
+                formAction={formAction}
+                setMessages={setMessages}
+                messages={messages}
             />
         </div>
     </div>
