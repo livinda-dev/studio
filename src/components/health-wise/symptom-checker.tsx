@@ -1,9 +1,10 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { Bot, Send, User, Loader2, Volume2 } from "lucide-react";
+import { Bot, Send, User, Loader2, Volume2, Mic, MicOff } from "lucide-react";
 import { handleChatMessage, handleReminder } from "@/app/actions";
 import { type HealthCompanionOutput } from "@/ai/flows/schemas";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const CHAT_HISTORY_KEY = 'healthwise-chat-history';
 
@@ -45,10 +47,26 @@ function SubmitButton() {
   );
 }
 
+// SpeechRecognition type definition for window object
+declare global {
+    interface Window {
+        SpeechRecognition: any;
+        webkitSpeechRecognition: any;
+    }
+}
+
 function ChatForm({
   onFormAction,
+  inputValue,
+  onInputChange,
+  onVoiceSubmit,
+  isListening
 }: {
   onFormAction: (formData: FormData) => void;
+  inputValue: string;
+  onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onVoiceSubmit: () => void;
+  isListening: boolean;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const { pending } = useFormStatus();
@@ -71,7 +89,12 @@ function ChatForm({
         autoComplete="off"
         required
         disabled={pending}
+        value={inputValue}
+        onChange={onInputChange}
       />
+      <Button type="button" size="icon" variant="outline" onClick={onVoiceSubmit} disabled={pending} aria-label={isListening ? "Stop listening" : "Start listening"}>
+          {isListening ? <MicOff className="h-5 w-5 text-destructive" /> : <Mic className="h-5 w-5" />}
+      </Button>
       <SubmitButton />
     </form>
   );
@@ -81,8 +104,70 @@ export default function SymptomChecker() {
   const [state, formAction] = useActionState(handleChatMessage, initialState);
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [isListening, setIsListening] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const recognitionRef = useRef<any>(null);
+
+
+  // Setup Speech Recognition
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event: any) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                setInputValue(finalTranscript + interimTranscript);
+            };
+
+            recognition.onerror = (event: any) => {
+                console.error("Speech recognition error", event.error);
+                toast({ variant: 'destructive', title: 'Voice Error', description: `Speech recognition error: ${event.error}` });
+                setIsListening(false);
+            };
+
+            recognition.onend = () => {
+                 if (isListening) {
+                    recognition.start(); // Keep listening if it stops unexpectedly
+                }
+            };
+
+            recognitionRef.current = recognition;
+        } else {
+            console.warn("Speech Recognition not supported by this browser.");
+        }
+    }
+  }, [toast, isListening]);
+
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+         toast({ variant: 'destructive', title: 'Unsupported', description: "Voice input is not supported in your browser." });
+        return;
+    }
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
 
   // Load chat history from localStorage on initial render
   useEffect(() => {
@@ -203,6 +288,7 @@ export default function SymptomChecker() {
       formData.set('history', historyJson);
       
       formAction(formData);
+      setInputValue("");
     }
   };
 
@@ -244,9 +330,11 @@ export default function SymptomChecker() {
                        return (
                             <div
                                 key={message.id}
-                                className={`flex items-start gap-3 ${
-                                isUser ? "justify-end" : "justify-start"
-                                } ${isSystem ? "w-full justify-center" : ""}`}
+                                className={cn(
+                                'flex items-start gap-3',
+                                isUser ? 'justify-end' : 'justify-start',
+                                isSystem ? 'justify-center' : ''
+                                )}
                             >
                                 {!isUser && !isSystem && (
                                 <Avatar className="h-8 w-8">
@@ -257,11 +345,13 @@ export default function SymptomChecker() {
                                 )}
                                 
                                 <div
-                                    className={`max-w-md rounded-lg px-4 py-2 shadow-md flex items-center gap-2 ${
-                                    isUser
-                                        ? "bg-primary text-primary-foreground"
-                                        : "bg-card border"
-                                    } ${isSystem ? 'w-full text-center justify-center bg-transparent border-none shadow-none text-muted-foreground text-sm' : ''}`}
+                                     className={cn(
+                                        'max-w-md rounded-lg px-4 py-2 shadow-md flex items-center gap-2',
+                                        isUser ? 'bg-primary text-primary-foreground' : 'bg-card border',
+                                        isSystem
+                                        ? 'w-full text-center justify-center bg-transparent border-none shadow-none text-muted-foreground text-sm'
+                                        : ''
+                                    )}
                                 >
                                     <div>
                                         <p>{contentText}</p>
@@ -307,8 +397,16 @@ export default function SymptomChecker() {
             </ScrollArea>
         </div>
         <div className="border-t p-4">
-            <ChatForm onFormAction={handleFormAction} />
+             <ChatForm
+                onFormAction={handleFormAction}
+                inputValue={inputValue}
+                onInputChange={(e) => setInputValue(e.target.value)}
+                onVoiceSubmit={toggleListening}
+                isListening={isListening}
+            />
         </div>
     </div>
   );
 }
+
+    
