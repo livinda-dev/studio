@@ -213,7 +213,7 @@ export default function SymptomChecker() {
                             <div
                                 key={message.id}
                                 className={`flex items-start gap-3 ${
-                                isUser || isSystem ? "justify-center" : "justify-start"
+                                isUser ? "justify-end" : isSystem ? "justify-center" : "justify-start"
                                 } ${isSystem ? "w-full" : ""}`}
                             >
                                 {!isUser && !isSystem && (
