@@ -16,7 +16,7 @@ export default function BottomNavbar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card shadow-t-lg">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card shadow-t-lg md:hidden">
       <div className="container mx-auto grid h-16 max-w-lg grid-cols-4 items-center">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
