@@ -61,11 +61,12 @@ export async function handleChatMessage(
       data: result,
       error: null,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('AI Chat Error:', error);
+    const errorMessage = error.message || 'The AI assistant is currently unavailable. Please try again later.';
     return {
       data: null,
-      error: 'The AI assistant is currently unavailable. Please try again later.',
+      error: errorMessage,
     };
   }
 }

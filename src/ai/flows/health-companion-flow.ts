@@ -64,10 +64,9 @@ const healthCompanionFlow = ai.defineFlow(
     }
     
     return {
-        ...promptResponse.output,
         textResponse,
         audioData,
-        tool_code: promptResponse.toolCode,
+        toolRequests: promptResponse.toolRequests,
     };
   }
 );

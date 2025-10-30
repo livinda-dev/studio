@@ -18,9 +18,9 @@ type Reminder = {
   advice: string;
 };
 
-type ToolCode = { name: string; args: any };
+type ToolRequest = { name: string; args: any };
 
-type MessageContent = string | (HealthCompanionOutput & { tool_code?: ToolCode[] });
+type MessageContent = string | (HealthCompanionOutput & { toolRequests?: ToolRequest[] });
 
 type Message = {
   id: number;
@@ -123,8 +123,8 @@ export default function SymptomChecker() {
     if (state.data) {
       const newAiMessage: Message = { id: Date.now(), sender: "ai", content: state.data };
       
-      const toolCodes = (state.data.tool_code || []) as ToolCode[];
-      const clearHistoryToolCall = toolCodes.find(tool => tool.name === 'clearChatHistoryTool');
+      const toolRequests = (state.data.toolRequests || []) as ToolRequest[];
+      const clearHistoryToolCall = toolRequests.find(tool => tool.name === 'clearChatHistoryTool');
 
       if (clearHistoryToolCall) {
         // Clear history but show the AI's confirmation message first.
@@ -202,8 +202,8 @@ export default function SymptomChecker() {
                            contentText = message.content.textResponse;
                            audioData = message.content.audioData;
 
-                           const toolCodes = (message.content.tool_code || []) as ToolCode[];
-                           const reminderToolCall = toolCodes.find(tool => tool.name === 'setReminderTool');
+                           const toolRequests = (message.content.toolRequests || []) as ToolRequest[];
+                           const reminderToolCall = toolRequests.find(tool => tool.name === 'setReminderTool');
                            if (reminderToolCall) {
                                 reminder = reminderToolCall.args;
                            }
@@ -213,8 +213,8 @@ export default function SymptomChecker() {
                             <div
                                 key={message.id}
                                 className={`flex items-start gap-3 ${
-                                isUser ? "justify-end" : isSystem ? "justify-center" : "justify-start"
-                                } ${isSystem ? "w-full" : ""}`}
+                                isUser ? "justify-end" : "justify-start"
+                                } ${isSystem ? "w-full justify-center" : ""}`}
                             >
                                 {!isUser && !isSystem && (
                                 <Avatar className="h-8 w-8">
