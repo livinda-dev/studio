@@ -1,10 +1,9 @@
+
 "use client"
 
-import { useEffect, useState } from 'react';
 import { Sun, Droplets, Wind, Cloud, Loader2, MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getWeather, GetWeatherOutput } from '@/ai/flows/weather-flow';
-import { getLocationFromCoords } from '@/ai/flows/location-flow';
+import { useWeather } from '@/context/weather-context';
 
 const weatherIcons = {
     'Sunny': <Sun className="h-8 w-8 text-yellow-500 shrink-0" />,
@@ -14,41 +13,7 @@ const weatherIcons = {
 };
 
 export default function WeatherAlert() {
-    const [weatherData, setWeatherData] = useState<GetWeatherOutput | null>(null);
-    const [location, setLocation] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (!navigator.geolocation) {
-            setError("Geolocation is not supported by your browser.");
-            setLoading(false);
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(async (position) => {
-            try {
-                const { latitude, longitude } = position.coords;
-                const locationResult = await getLocationFromCoords({ latitude, longitude });
-                setLocation(locationResult.city);
-                
-                if (locationResult.city) {
-                    const weatherResult = await getWeather({ location: locationResult.city });
-                    setWeatherData(weatherResult);
-                } else {
-                    setError("Could not determine your location.");
-                }
-            } catch (err) {
-                console.error(err);
-                setError("Failed to fetch weather data.");
-            } finally {
-                setLoading(false);
-            }
-        }, () => {
-            setError("Geolocation permission denied. Please enable it in your browser settings.");
-            setLoading(false);
-        });
-    }, []);
+    const { weatherData, location, loading, error } = useWeather();
 
     if (loading) {
         return (
@@ -81,7 +46,7 @@ export default function WeatherAlert() {
     }
 
     if (!weatherData) {
-        return null; // Or a fallback UI
+        return null; // Or a fallback UI if weather couldn't be fetched but there wasn't a hard error
     }
 
     const icon = weatherIcons[weatherData.condition as keyof typeof weatherIcons] || <Sun className="h-8 w-8 text-yellow-500 shrink-0" />;
