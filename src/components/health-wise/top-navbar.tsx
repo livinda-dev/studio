@@ -16,15 +16,15 @@ export default function TopNavbar() {
   const pathname = usePathname();
 
   return (
-    <header className="hidden md:block border-b bg-card shadow-sm sticky top-0 z-40">
+    <header className="border-b bg-card shadow-sm sticky top-0 z-40">
       <nav className="container mx-auto flex items-center h-16">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-6 md:w-[140px]">
             <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
                 <Bot className="h-7 w-7 text-primary" />
                 <span className="font-bold text-lg font-headline">HealthWise</span>
             </Link>
         </div>
-        <div className="flex-1 flex items-center justify-center gap-4 lg:gap-8">
+        <div className="hidden md:flex flex-1 items-center justify-center gap-4 lg:gap-8">
             {navItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
@@ -41,7 +41,7 @@ export default function TopNavbar() {
             );
             })}
         </div>
-        <div className='w-[140px]'></div>
+        <div className='hidden md:block w-[140px]'></div>
       </nav>
     </header>
   );
