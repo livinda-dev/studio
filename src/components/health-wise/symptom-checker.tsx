@@ -18,13 +18,17 @@ type Reminder = {
   advice: string;
 };
 
-type MessageContent = string | (HealthCompanionOutput & { tool_code?: { name: string; args: Reminder } });
+type ToolCode = { name: string; args: any };
+
+type MessageContent = string | (HealthCompanionOutput & { tool_code?: ToolCode[] });
 
 type Message = {
   id: number;
   sender: "user" | "ai" | "system";
   content: MessageContent;
 };
+
+const SYSTEM_MESSAGE_WELCOME = "Welcome! I'm your AI Health Companion. Ask me about your symptoms or just say hello.";
 
 const initialState: { data: HealthCompanionOutput | null; error: string | null; } = {
   data: null,
@@ -56,33 +60,28 @@ export default function SymptomChecker() {
         setMessages(JSON.parse(savedHistory));
       } else {
         setMessages([
-          {
-            id: 1,
-            sender: "system",
-            content: "Welcome! I'm your AI Health Companion. Ask me about your symptoms or just say hello.",
-          },
+          { id: 1, sender: "system", content: SYSTEM_MESSAGE_WELCOME },
         ]);
       }
     } catch (error) {
       console.error("Failed to load chat history from localStorage", error);
        setMessages([
-          {
-            id: 1,
-            sender: "system",
-            content: "Welcome! I'm your AI Health Companion. Ask me about your symptoms or just say hello.",
-          },
+          { id: 1, sender: "system", content: SYSTEM_MESSAGE_WELCOME },
         ]);
     }
   }, []);
 
   // Save chat history to localStorage whenever it changes
   useEffect(() => {
-    if (messages.length > 0) {
-      try {
-        localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages));
-      } catch (error) {
+    try {
+        if (messages.length > 0) {
+            localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(messages));
+        } else {
+            // If messages are cleared, remove from storage as well
+            localStorage.removeItem(CHAT_HISTORY_KEY);
+        }
+    } catch (error) {
          console.error("Failed to save chat history to localStorage", error);
-      }
     }
   }, [messages]);
 
@@ -120,10 +119,23 @@ export default function SymptomChecker() {
     }
   };
   
-    useEffect(() => {
+  useEffect(() => {
     if (state.data) {
       const newAiMessage: Message = { id: Date.now(), sender: "ai", content: state.data };
-      setMessages((prev) => [...prev, newAiMessage]);
+      
+      const toolCodes = (state.data.tool_code || []) as ToolCode[];
+      const clearHistoryToolCall = toolCodes.find(tool => tool.name === 'clearChatHistoryTool');
+
+      if (clearHistoryToolCall) {
+        // Clear history but show the AI's confirmation message first.
+        setMessages([newAiMessage]);
+        // After a very short delay, reset to just the welcome message.
+        setTimeout(() => {
+            setMessages([{ id: Date.now(), sender: "system", content: SYSTEM_MESSAGE_WELCOME }]);
+        }, 2000);
+      } else {
+        setMessages((prev) => [...prev, newAiMessage]);
+      }
       
       // Auto-play audio if available
       if (state.data.audioData && audioRef.current) {
@@ -189,8 +201,11 @@ export default function SymptomChecker() {
                        } else {
                            contentText = message.content.textResponse;
                            audioData = message.content.audioData;
-                           if (message.content.tool_code?.name === 'setReminderTool') {
-                               reminder = message.content.tool_code.args;
+
+                           const toolCodes = (message.content.tool_code || []) as ToolCode[];
+                           const reminderToolCall = toolCodes.find(tool => tool.name === 'setReminderTool');
+                           if (reminderToolCall) {
+                                reminder = reminderToolCall.args;
                            }
                        }
 
@@ -201,7 +216,7 @@ export default function SymptomChecker() {
                                 isUser ? "justify-end" : "justify-start"
                                 }`}
                             >
-                                {!isUser && (
+                                {!isUser && !isSystem && (
                                 <Avatar className="h-8 w-8">
                                     <AvatarFallback className="bg-primary text-primary-foreground">
                                     <Bot className="h-5 w-5" />

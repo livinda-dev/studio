@@ -32,18 +32,22 @@ export async function handleChatMessage(
   
   let historyForAI: HistoryMessage[] = [];
   if (validatedFields.data.history) {
-    const rawHistory = JSON.parse(validatedFields.data.history);
-    historyForAI = rawHistory.map((msg: any) => {
-      if (msg.sender === 'user') {
-        return { role: 'user', content: msg.content };
-      }
-      // For AI messages, we need to extract the text part.
-      // The content can be a string (for system messages) or an object (for AI responses).
-      if (msg.sender === 'ai' && typeof msg.content === 'object' && msg.content !== null) {
-        return { role: 'model', content: msg.content.textResponse || '' };
-      }
-      return null;
-    }).filter((item: HistoryMessage | null): item is HistoryMessage => item !== null && item.content.trim() !== '');
+    try {
+      const rawHistory = JSON.parse(validatedFields.data.history);
+      historyForAI = rawHistory.map((msg: any): HistoryMessage | null => {
+        if (msg.sender === 'user' && typeof msg.content === 'string') {
+          return { role: 'user', content: msg.content };
+        }
+        if (msg.sender === 'ai' && typeof msg.content === 'object' && msg.content !== null && msg.content.textResponse) {
+          // We only care about the text response for the history
+          return { role: 'model', content: msg.content.textResponse };
+        }
+        return null;
+      }).filter((item: HistoryMessage | null): item is HistoryMessage => item !== null && item.content.trim() !== '');
+    } catch (e) {
+      console.error("Failed to parse chat history:", e);
+      // Decide how to handle corrupted history. Maybe clear it or just ignore.
+    }
   }
 
 
