@@ -32,7 +32,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-background">
                 <div className="flex flex-col items-center gap-4">
-                    <Bot className="h-16 w-16 animate-spin text-primary"/>
+                    <Bot className="h-16 w-16 animate-spin-pause text-primary"/>
                     <p className="text-lg font-semibold text-muted-foreground">Loading Your Experience...</p>
                 </div>
             </div>

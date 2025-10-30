@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  @keyframes spin-pause {
+    0% {
+      transform: rotate(0deg);
+    }
+    90%, 100% {
+      transform: rotate(360deg);
+    }
+  }
+}
+
 body {
   font-family: 'PT Sans', sans-serif;
 }
