@@ -213,8 +213,8 @@ export default function SymptomChecker() {
                             <div
                                 key={message.id}
                                 className={`flex items-start gap-3 ${
-                                isUser ? "justify-end" : "justify-start"
-                                }`}
+                                isUser || isSystem ? "justify-center" : "justify-start"
+                                } ${isSystem ? "w-full" : ""}`}
                             >
                                 {!isUser && !isSystem && (
                                 <Avatar className="h-8 w-8">
