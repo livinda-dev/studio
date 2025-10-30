@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/provider';
 import { useEffect, ReactNode } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Bot } from 'lucide-react';
 
 const AUTH_ROUTES = ['/login'];
 const PUBLIC_ROUTES: string[] = []; // Add any other public routes here
@@ -31,8 +31,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     if (isUserLoading || (!user && !AUTH_ROUTES.includes(pathname) && !PUBLIC_ROUTES.includes(pathname)) || (user && AUTH_ROUTES.includes(pathname))) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-background">
-                <div className="flex items-center gap-3">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+                <div className="flex flex-col items-center gap-4">
+                    <Bot className="h-16 w-16 animate-spin text-primary"/>
                     <p className="text-lg font-semibold text-muted-foreground">Loading Your Experience...</p>
                 </div>
             </div>
