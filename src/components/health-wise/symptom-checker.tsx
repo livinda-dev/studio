@@ -1,8 +1,7 @@
 
 "use client";
 
-import React, { useState, useRef, useEffect, useOptimistic } from "react";
-import { useActionState } from "react";
+import React, { useState, useRef, useEffect, useOptimistic, useActionState as useFormState } from "react";
 import { useFormStatus } from "react-dom";
 import { Bot, Send, User, Loader2, Volume2, Mic, MicOff } from "lucide-react";
 import { handleChatMessage, handleReminder } from "@/app/actions";
@@ -55,11 +54,18 @@ declare global {
     }
 }
 
-function ChatForm() {
-  const [inputValue, setInputValue] = useState("");
+function ChatForm({ formRef, onMessageChange, message }: { formRef: React.RefObject<HTMLFormElement>, onMessageChange: (value: string) => void, message: string }) {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const { toast } = useToast();
+  const { pending } = useFormStatus();
+
+  useEffect(() => {
+    if (pending) {
+      onMessageChange(''); // Clear input on submission start
+    }
+  }, [pending, onMessageChange]);
+
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -80,7 +86,7 @@ function ChatForm() {
                         interimTranscript += event.results[i][0].transcript;
                     }
                 }
-                setInputValue(finalTranscript + interimTranscript);
+                onMessageChange(finalTranscript + interimTranscript);
             };
 
             recognition.onerror = (event: any) => {
@@ -91,7 +97,8 @@ function ChatForm() {
 
             recognition.onend = () => {
                  if (isListening) {
-                    recognition.start(); // Keep listening if it stops unexpectedly
+                    // It sometimes stops on its own, so we'll restart it if we are still in listening mode.
+                    recognition.start(); 
                 }
             };
 
@@ -100,7 +107,8 @@ function ChatForm() {
             console.warn("Speech Recognition not supported by this browser.");
         }
     }
-  }, [toast, isListening]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toast]);
 
 
   const toggleListening = () => {
@@ -108,12 +116,12 @@ function ChatForm() {
          toast({ variant: 'destructive', title: 'Unsupported', description: "Voice input is not supported in your browser." });
         return;
     }
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    } else {
+    const currentlyListening = isListening;
+    setIsListening(!currentlyListening);
+    if (!currentlyListening) {
       recognitionRef.current.start();
-      setIsListening(true);
+    } else {
+      recognitionRef.current.stop();
     }
   };
 
@@ -125,8 +133,8 @@ function ChatForm() {
         className="flex-1"
         autoComplete="off"
         required
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
+        value={message}
+        onChange={(e) => onMessageChange(e.target.value)}
       />
       <Button type="button" size="icon" variant="outline" onClick={toggleListening} aria-label={isListening ? "Stop listening" : "Start listening"}>
           {isListening ? <MicOff className="h-5 w-5 text-destructive" /> : <Mic className="h-5 w-5" />}
@@ -142,6 +150,14 @@ export default function SymptomChecker() {
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [inputValue, setInputValue] = useState("");
+
+  const [optimisticMessages, addOptimisticMessage] = useOptimistic(
+    messages,
+    (state: Message[], newMessage: Message) => [...state, newMessage]
+  );
+  
+  const [state, formAction] = useFormState(handleChatMessage, initialState);
 
   // Load chat history from localStorage on initial render
   useEffect(() => {
@@ -174,21 +190,7 @@ export default function SymptomChecker() {
          console.error("Failed to save chat history to localStorage", error);
     }
   }, [messages]);
-
-  const [optimisticMessages, addOptimisticMessage] = useOptimistic(
-    messages,
-    (state: Message[], newMessage: string) => [
-      ...state,
-      {
-        id: Date.now(),
-        sender: "user",
-        content: newMessage,
-      },
-    ]
-  );
   
-  const [state, formAction] = useActionState(handleChatMessage, initialState);
-
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) {
       toast({
@@ -247,6 +249,7 @@ export default function SymptomChecker() {
         { id: Date.now(), sender: "system", content: `Error: ${state.error}` },
       ]);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   useEffect(() => {
@@ -365,28 +368,33 @@ export default function SymptomChecker() {
         <div className="border-t p-4">
              <form
                 ref={formRef}
-                action={async (formData) => {
+                action={(formData) => {
                     const message = formData.get("message") as string;
                     if (!message.trim()) return;
-                    
-                    addOptimisticMessage(message);
-                    
-                    const historyWithOptimistic = [
-                        ...messages,
-                        { id: 0, sender: "user", content: message } // temp message for history
-                    ];
 
-                    const historyJson = JSON.stringify(historyWithOptimistic);
+                    addOptimisticMessage({
+                        id: Date.now(),
+                        sender: "user",
+                        content: message,
+                    });
+                    
+                    setMessages((prev) => [...prev, {
+                        id: Date.now(),
+                        sender: "user",
+                        content: message,
+                    }]);
+                    
+                    const historyJson = JSON.stringify(messages);
                     formData.set('history', historyJson);
 
                     formAction(formData);
-
-                    formRef.current?.reset();
                 }}
             >
-              <ChatForm />
+              <ChatForm formRef={formRef} onMessageChange={setInputValue} message={inputValue}/>
             </form>
         </div>
     </div>
   );
 }
+
+    
