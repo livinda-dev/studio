@@ -40,9 +40,13 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
                     } else {
                         setError("Could not determine your location.");
                     }
-                } catch (err) {
+                } catch (err: any) {
                     console.error(err);
-                    setError("Failed to fetch weather data.");
+                    if (err.message && err.message.includes('503')) {
+                        setError("The AI weather service is temporarily overloaded. Please try again in a few moments.");
+                    } else {
+                        setError("Failed to fetch weather data. Please check your connection or API key.");
+                    }
                 } finally {
                     setLoading(false);
                 }
