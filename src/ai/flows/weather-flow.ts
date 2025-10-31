@@ -67,19 +67,27 @@ const getWeatherFlow = getAi().defineFlow(
     if (!weatherData) {
         throw new Error("Could not retrieve weather data from the tool.");
     }
+    
+    let advice = "AI health advice is temporarily unavailable.";
+    try {
+        // Then, use the weather data to generate health advice.
+        const adviceResponse = await ai.generate({
+            prompt: `The weather is: ${weatherData.condition}, ${weatherData.temperature}°C, ${weatherData.wind} km/h wind, ${weatherData.humidity}% humidity. Give one short health advice sentence.`,
+            model: 'googleai/gemini-2.5-flash',
+        });
+        advice = adviceResponse.text;
+    } catch (e: any) {
+        console.warn("Could not generate weather advice from AI. This may be due to a temporary service overload.", e.message);
+        // If the AI fails (e.g., overload), we'll use a default advice but still return the weather data.
+    }
 
-    // Then, use the weather data to generate health advice.
-    const adviceResponse = await ai.generate({
-        prompt: `The weather is: ${weatherData.condition}, ${weatherData.temperature}°C, ${weatherData.wind} km/h wind, ${weatherData.humidity}% humidity. Give one short health advice sentence.`,
-        model: 'googleai/gemini-2.5-flash',
-    });
 
     return {
         temperature: weatherData.temperature,
         condition: weatherData.condition,
         windSpeed: weatherData.wind,
         humidity: weatherData.humidity,
-        advice: adviceResponse.text,
+        advice: advice,
     }
   }
 );
