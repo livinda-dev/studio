@@ -35,7 +35,7 @@ const getLocationFromCoordsFlow = ai.defineFlow(
     
     const llmResponse = await ai.generate({
         prompt: `What is the city for the following coordinates: latitude ${latitude}, longitude ${longitude}? Respond with only the city name.`,
-        model: googleAI.model('gemini-2.5-flash'),
+        model: googleAI('gemini-2.5-flash'),
     });
 
     return {
