@@ -3,8 +3,7 @@
  * @fileOverview A flow to convert text to speech.
  */
 
-import { ai } from '@/ai/genkit';
-import { googleAI } from '@genkit-ai/google-genai';
+import { ai, googleAI } from '@/ai/genkit';
 import { z } from 'zod';
 import wav from 'wav';
 
