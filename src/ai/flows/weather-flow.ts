@@ -7,7 +7,7 @@
  * - GetWeatherOutput - The return type for the getWeather function.
  */
 
-import {ai, googleAI} from '@/ai/genkit';
+import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GetWeatherInputSchema = z.object({
@@ -70,7 +70,7 @@ const getWeatherFlow = ai.defineFlow(
     // Then, use the weather data to generate health advice.
     const adviceResponse = await ai.generate({
         prompt: `The weather is: ${weatherData.condition}, ${weatherData.temperature}°C, ${weatherData.wind} km/h wind, ${weatherData.humidity}% humidity. Give one short health advice sentence.`,
-        model: googleAI('gemini-2.5-flash'),
+        model: 'googleai/gemini-2.5-flash',
     });
 
     return {

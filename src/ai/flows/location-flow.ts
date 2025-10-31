@@ -7,7 +7,7 @@
  * - GetLocationFromCoordsOutput - The return type for the function.
  */
 
-import {ai, googleAI} from '@/ai/genkit';
+import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GetLocationFromCoordsInputSchema = z.object({
@@ -35,7 +35,7 @@ const getLocationFromCoordsFlow = ai.defineFlow(
     
     const llmResponse = await ai.generate({
         prompt: `What is the city for the following coordinates: latitude ${latitude}, longitude ${longitude}? Respond with only the city name.`,
-        model: googleAI('gemini-2.5-flash'),
+        model: 'googleai/gemini-2.5-flash',
     });
 
     return {

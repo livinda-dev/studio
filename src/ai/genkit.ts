@@ -10,6 +10,3 @@ const googleAiPlugin = googleAI({apiKey: process.env.GEMINI_API_KEY});
 export const ai = genkit({
   plugins: [googleAiPlugin],
 });
-
-// Export the factory itself for model references
-export { googleAI };

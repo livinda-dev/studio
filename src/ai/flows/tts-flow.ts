@@ -3,7 +3,7 @@
  * @fileOverview A flow to convert text to speech.
  */
 
-import { ai, googleAI } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import wav from 'wav';
 
@@ -24,7 +24,7 @@ const ttsFlow = ai.defineFlow(
   },
   async (query) => {
     const { media } = await ai.generate({
-      model: googleAI('gemini-2.5-flash-preview-tts'),
+      model: 'googleai/gemini-2.5-flash-preview-tts',
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: {
