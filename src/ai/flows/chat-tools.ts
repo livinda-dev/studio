@@ -3,10 +3,10 @@
  * @fileOverview Tools for managing the chat itself.
  */
 
-import { ai } from '@/ai/genkit';
+import { getAi } from '@/ai/genkit';
 import { z } from 'zod';
 
-export const clearChatHistoryTool = ai.defineTool(
+export const clearChatHistoryTool = getAi().defineTool(
   {
     name: 'clearChatHistoryTool',
     description: 'Clears the entire chat history for the user.',

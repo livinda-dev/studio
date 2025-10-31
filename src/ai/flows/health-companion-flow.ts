@@ -6,7 +6,7 @@
  * - healthCompanion - A function that handles a health-related conversation.
  */
 
-import {ai} from '@/ai/genkit';
+import { getAi } from '@/ai/genkit';
 import { HealthCompanionInputSchema, HealthCompanionOutputSchema, type HealthCompanionInput, type HealthCompanionOutput } from './schemas';
 import { setReminderTool } from './reminder-flow';
 import { generateAudio } from './tts-flow';
@@ -18,12 +18,14 @@ export async function healthCompanion(input: HealthCompanionInput): Promise<Heal
   return healthCompanionFlow(input);
 }
 
-const conversationalPrompt = ai.definePrompt({
-    name: 'conversationalPrompt',
-    input: { schema: HealthCompanionInputSchema },
-    output: { schema: z.object({ textResponse: z.string().describe("The conversational response from the AI.") }) },
-    tools: [setReminderTool, clearChatHistoryTool],
-    prompt: `You are a friendly and helpful AI Health Companion. Your role is to have a natural, supportive conversation with the user about their health and wellness questions.
+const getConversationalPrompt = () => {
+    const ai = getAi();
+    return ai.definePrompt({
+        name: 'conversationalPrompt',
+        input: { schema: HealthCompanionInputSchema },
+        output: { schema: z.object({ textResponse: z.string().describe("The conversational response from the AI.") }) },
+        tools: [setReminderTool, clearChatHistoryTool],
+        prompt: `You are a friendly and helpful AI Health Companion. Your role is to have a natural, supportive conversation with the user about their health and wellness questions.
 
 Keep your responses concise and easy to understand. Avoid making medical diagnoses. If the user asks for a diagnosis, gently remind them to consult a healthcare professional.
 
@@ -42,16 +44,18 @@ Current User Message:
 "{{{message}}}"
 
 Based on the conversation, provide a helpful and conversational response. If you decide to use a tool, your main textResponse should still be a conversational message informing the user of your action (e.g., "Okay, I've cleared our conversation history.").`,
-});
+    });
+}
 
 
-const healthCompanionFlow = ai.defineFlow(
+const healthCompanionFlow = getAi().defineFlow(
   {
     name: 'healthCompanionFlow',
     inputSchema: HealthCompanionInputSchema,
     outputSchema: HealthCompanionOutputSchema,
   },
   async (input) => {
+    const conversationalPrompt = getConversationalPrompt();
     const promptResponse = await conversationalPrompt(input);
     const textResponse = promptResponse.output?.textResponse || "I'm not sure how to respond to that.";
 

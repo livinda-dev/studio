@@ -7,7 +7,7 @@
  * - GetWeatherOutput - The return type for the getWeather function.
  */
 
-import {ai} from '@/ai/genkit';
+import {getAi} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GetWeatherInputSchema = z.object({
@@ -28,7 +28,7 @@ export async function getWeather(input: GetWeatherInput): Promise<GetWeatherOutp
   return getWeatherFlow(input);
 }
 
-const getWeatherTool = ai.defineTool(
+const getWeatherTool = getAi().defineTool(
   {
     name: 'getCurrentWeather',
     description: 'Get the current weather in a given location.',
@@ -53,13 +53,14 @@ const getWeatherTool = ai.defineTool(
   }
 );
 
-const getWeatherFlow = ai.defineFlow(
+const getWeatherFlow = getAi().defineFlow(
   {
     name: 'getWeatherFlow',
     inputSchema: GetWeatherInputSchema,
     outputSchema: GetWeatherOutputSchema,
   },
   async input => {
+    const ai = getAi();
     // First, explicitly call the tool to get the weather data.
     const weatherData = await getWeatherTool(input);
 

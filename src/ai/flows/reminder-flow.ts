@@ -3,7 +3,7 @@
  * @fileOverview A flow for setting reminders.
  */
 
-import { ai } from '@/ai/genkit';
+import { getAi } from '@/ai/genkit';
 import { z } from 'zod';
 
 const ReminderSchema = z.object({
@@ -11,7 +11,7 @@ const ReminderSchema = z.object({
   advice: z.string().describe('A short, actionable piece of advice for the user (e.g., "drink plenty of water").'),
 });
 
-export const setReminderTool = ai.defineTool(
+export const setReminderTool = getAi().defineTool(
   {
     name: 'setReminderTool',
     description: 'Sets a daily reminder for the user to help them manage a health symptom.',
