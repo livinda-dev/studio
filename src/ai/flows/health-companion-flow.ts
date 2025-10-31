@@ -28,7 +28,7 @@ const getConversationalPrompt = () => {
         input: { schema: HealthCompanionInputSchema },
         output: { schema: outputSchema },
         tools: [setReminderTool, clearChatHistoryTool],
-        model: 'googleai/gemini-pro',
+        model: 'googleai/gemini-2.5-flash',
         prompt: `You are a friendly and helpful AI Health Companion. Your role is to have a natural, supportive conversation with the user about their health and wellness questions.
 
 Keep your responses concise and easy to understand. Avoid making medical diagnoses. If the user asks for a diagnosis, gently remind them to consult a healthcare professional.
