@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to get the current weather for a given location.
@@ -42,12 +43,21 @@ const getWeatherTool = getAi().defineTool(
   },
   async ({ location }) => {
     // In a real app, you'd call a weather API here.
-    // For this example, we'll return mock data.
-    const temperature = Math.floor(Math.random() * 20) + 10;
-    const wind = Math.floor(Math.random() * 10) + 5;
-    const humidity = Math.floor(Math.random() * 50) + 30;
+    // For this example, we'll return more realistic mock data.
     const conditions = ['Sunny', 'Cloudy', 'Rainy', 'Windy'];
     const condition = conditions[Math.floor(Math.random() * conditions.length)];
+
+    let temperature;
+    if (condition === 'Rainy') {
+        // Cooler temps for rain
+        temperature = Math.floor(Math.random() * 8) + 15; // 15°C to 22°C
+    } else {
+        // Warmer temps for other conditions
+        temperature = Math.floor(Math.random() * 13) + 18; // 18°C to 30°C
+    }
+    
+    const wind = Math.floor(Math.random() * 15) + 5; // 5 to 20 km/h
+    const humidity = Math.floor(Math.random() * 40) + 50; // 50% to 90%
     
     return { temperature, wind, humidity, condition };
   }
