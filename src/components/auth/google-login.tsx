@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react";
@@ -6,6 +7,20 @@ import { useFirebase } from "@/firebase/provider";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+
+const getFriendlyGoogleAuthErrorMessage = (errorCode: string): string => {
+    switch (errorCode) {
+        case 'auth/account-exists-with-different-credential':
+            return 'An account already exists with the same email address but different sign-in credentials. Try signing in with a different method.';
+        case 'auth/popup-closed-by-user':
+            return 'The sign-in window was closed before completing. Please try again.';
+        case 'auth/cancelled-popup-request':
+            return 'The sign-in process was cancelled. Please try again if this was a mistake.';
+        default:
+            return 'Could not sign in with Google. Please try again later.';
+    }
+};
 
 export default function GoogleLogin() {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,11 +34,12 @@ export default function GoogleLogin() {
             await signInWithPopup(auth, provider);
             // On success, AuthProvider will handle the redirect.
         } catch (error: any) {
-             console.error("Google Sign-In Error:", error);
+             console.error("Google Sign-In Error Code:", error.code);
+             const friendlyMessage = getFriendlyGoogleAuthErrorMessage(error.code);
              toast({
                 variant: "destructive",
                 title: "Google Sign-In Failed",
-                description: error.message || "Could not sign in with Google. Please try again.",
+                description: friendlyMessage,
             });
         } finally {
             setIsSubmitting(false);

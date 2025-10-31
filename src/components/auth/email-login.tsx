@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react';
@@ -18,6 +19,22 @@ const loginSchema = z.object({
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
+
+const getFriendlyAuthErrorMessage = (errorCode: string): string => {
+    switch (errorCode) {
+        case 'auth/invalid-email':
+            return 'The email address you entered is not valid. Please check and try again.';
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+            return 'Invalid credentials. Please check your email and password and try again.';
+        case 'auth/email-already-in-use':
+            return 'An account already exists with this email address. Please sign in or use a different email.';
+        case 'auth/weak-password':
+            return 'The password is too weak. It must be at least 6 characters long.';
+        default:
+            return 'An unexpected error occurred during authentication. Please try again later.';
+    }
+};
 
 export default function EmailLogin() {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,11 +57,12 @@ export default function EmailLogin() {
                 await signInWithEmailAndPassword(auth, data.email, data.password);
             }
         } catch (error: any) {
-            console.error(error);
+            console.error("Authentication Error Code:", error.code);
+            const friendlyMessage = getFriendlyAuthErrorMessage(error.code);
             toast({
                 variant: "destructive",
                 title: "Authentication Failed",
-                description: error.message || "An unexpected error occurred.",
+                description: friendlyMessage,
             });
         } finally {
             setIsSubmitting(false);
