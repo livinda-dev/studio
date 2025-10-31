@@ -58,12 +58,21 @@ export default function EmailLogin() {
             }
         } catch (error: any) {
             console.error("Authentication Error Code:", error.code);
-            const friendlyMessage = getFriendlyAuthErrorMessage(error.code);
-            toast({
-                variant: "destructive",
-                title: "Authentication Failed",
-                description: friendlyMessage,
-            });
+
+            if (isSignUp && error.code === 'auth/email-already-in-use') {
+                 toast({
+                    title: "Account Exists",
+                    description: "This email is already registered. Please sign in.",
+                });
+                setIsSignUp(false); // Switch to sign-in mode
+            } else {
+                const friendlyMessage = getFriendlyAuthErrorMessage(error.code);
+                toast({
+                    variant: "destructive",
+                    title: "Authentication Failed",
+                    description: friendlyMessage,
+                });
+            }
         } finally {
             setIsSubmitting(false);
         }
