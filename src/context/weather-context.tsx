@@ -41,17 +41,18 @@ export function WeatherProvider({ children }: { children: ReactNode }) {
                         setError("Could not determine your location.");
                     }
                 } catch (err: any) {
-                    console.error(err);
-                    if (err.message && err.message.includes('503')) {
-                        setError("The AI weather service is temporarily overloaded. Please try again in a few moments.");
-                    } else {
-                        setError("Failed to fetch weather data. Please check your connection or API key.");
+                    console.error("Weather/Location fetch error:", err);
+                    let errorMessage = "Failed to fetch weather data. Please check your connection or API key.";
+                    // Check for specific Genkit/Google AI overload error
+                    if (err.message && (err.message.includes('503') || err.message.includes('overloaded'))) {
+                        errorMessage = "The AI service is temporarily overloaded. Please try again in a few moments.";
                     }
+                    setError(errorMessage);
                 } finally {
                     setLoading(false);
                 }
             }, () => {
-                setError("Geolocation permission denied. Please enable it in your browser settings.");
+                setError("Geolocation permission denied. Please enable it in your browser settings to see local weather.");
                 setLoading(false);
             });
         };
