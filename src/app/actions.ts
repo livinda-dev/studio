@@ -1,3 +1,4 @@
+
 'use server';
 
 import { healthCompanion } from '@/ai/flows/health-companion-flow';
@@ -63,7 +64,10 @@ export async function handleChatMessage(
     };
   } catch (error: any) {
     console.error('AI Chat Error:', error);
-    const errorMessage = error.message || 'The AI assistant is currently unavailable. Please try again later.';
+    let errorMessage = 'The AI assistant is currently unavailable. Please try again later.';
+    if (error.message && error.message.includes('503')) {
+        errorMessage = "The AI assistant is currently overloaded. Please try again in a few moments.";
+    }
     return {
       data: null,
       error: errorMessage,
