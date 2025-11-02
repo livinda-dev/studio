@@ -3,7 +3,7 @@
 
 import React, { useState, useRef, useEffect, useOptimistic, useActionState as useFormState } from "react";
 import { useFormStatus } from "react-dom";
-import { Bot, Send, User, Loader2, Volume2, Mic, MicOff, Square } from "lucide-react";
+import { Bot, Send, User, Loader2, Volume2, Mic, Square } from "lucide-react";
 import { handleChatMessage, handleReminder } from "@/app/actions";
 import { type HealthCompanionOutput } from "@/ai/flows/schemas";
 import { Input } from "@/components/ui/input";
@@ -76,8 +76,8 @@ function ChatForm({ formRef, onMessageChange, message }: { formRef: React.RefObj
 
   const handleSilence = () => {
     console.log("Silence detected, submitting form.");
-    submitForm();
     stopListening();
+    submitForm();
   };
 
   const stopListening = () => {
@@ -112,23 +112,26 @@ function ChatForm({ formRef, onMessageChange, message }: { formRef: React.RefObj
                     }
                 }
                 
-                const fullTranscript = finalTranscript + interimTranscript;
+                const fullTranscript = (finalTranscript + interimTranscript).trim();
                 onMessageChange(fullTranscript);
 
-                if(finalTranscript.trim() || interimTranscript.trim()) {
+                if(fullTranscript) {
                    silenceTimerRef.current = setTimeout(handleSilence, 2000);
                 }
             };
 
             recognition.onerror = (event: any) => {
                 console.error("Speech recognition error", event.error);
-                toast({ variant: 'destructive', title: 'Voice Error', description: `Speech recognition error: ${event.error}` });
+                if (event.error !== 'no-speech') {
+                    toast({ variant: 'destructive', title: 'Voice Error', description: `Speech recognition error: ${event.error}` });
+                }
                 stopListening();
             };
 
             recognition.onend = () => {
                  if (isListening) {
                     // It sometimes stops on its own, so we'll restart it if we are still in listening mode.
+                    console.log("Recognition ended, but still in listening mode. Restarting.");
                     recognition.start(); 
                 }
             };
@@ -141,7 +144,7 @@ function ChatForm({ formRef, onMessageChange, message }: { formRef: React.RefObj
     
     return () => {
         if (recognitionRef.current) {
-            recognitionRef.current.stop();
+            recognitionRef.current.abort();
         }
         if (silenceTimerRef.current) {
             clearTimeout(silenceTimerRef.current);
