@@ -42,24 +42,39 @@ const getWeatherTool = getAi().defineTool(
     }),
   },
   async ({ location }) => {
-    // In a real app, you'd call a weather API here.
-    // For this example, we'll return more realistic mock data.
-    const conditions = ['Sunny', 'Cloudy', 'Rainy', 'Windy'];
-    const condition = conditions[Math.floor(Math.random() * conditions.length)];
-
-    let temperature;
-    if (condition === 'Rainy') {
-        // Cooler temps for rain
-        temperature = Math.floor(Math.random() * 8) + 15; // 15°C to 22°C
-    } else {
-        // Warmer temps for other conditions
-        temperature = Math.floor(Math.random() * 13) + 18; // 18°C to 30°C
+    const apiKey = process.env.WEATHER_API_KEY;
+    if (!apiKey) {
+      throw new Error("WEATHER_API_KEY is not configured.");
     }
     
-    const wind = Math.floor(Math.random() * 15) + 5; // 5 to 20 km/h
-    const humidity = Math.floor(Math.random() * 40) + 50; // 50% to 90%
-    
-    return { temperature, wind, humidity, condition };
+    const url = `http://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${encodeURIComponent(location)}`;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Weather API request failed with status ${response.status}`);
+      }
+      const data = await response.json();
+      
+      const { temp_c, wind_kph, humidity, condition } = data.current;
+      
+      return {
+        temperature: temp_c,
+        wind: wind_kph,
+        humidity: humidity,
+        condition: condition.text,
+      };
+
+    } catch(e: any) {
+      console.error("Failed to fetch real weather data", e);
+      // Fallback to mock data if API fails
+      const conditions = ['Sunny', 'Cloudy', 'Rainy', 'Windy'];
+      const condition = conditions[Math.floor(Math.random() * conditions.length)];
+      const temperature = Math.floor(Math.random() * 13) + 18; // 18°C to 30°C
+      const wind = Math.floor(Math.random() * 15) + 5; // 5 to 20 km/h
+      const humidity = Math.floor(Math.random() * 40) + 50; // 50% to 90%
+      return { temperature, wind, humidity, condition };
+    }
   }
 );
 
